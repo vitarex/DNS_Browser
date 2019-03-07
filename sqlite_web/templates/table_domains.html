@@ -22,40 +22,39 @@
   <small>{{ total_rows }} sor, {{ page }}. oldal</small>
 {% endblock %}
 
-{% block content_tab_class %} active{% endblock %}
+{% block domain_tab_class %}  active{% endblock %}
 
 {% block inner_content %}
   {# add filters #}
-  <form action="{{ url_for('table_content', table=table, page=page, ordering=ordering) }}" class="form-inline float-left" method="get" style="margin-top: 10px;">
+  <form action="{{ url_for('table_domains', table=table, page=page, ordering=ordering) }}" class="form-inline float-left" method="get" style="margin-top: 10px;">
     <input class="form-control form-control-sm" name="search" value="{% if search %}{{search}}{% endif %}" />
     <button class="btn btn-primary btn-sm" type="submit" >Keresés</button>
   </form>
   <table class="table table-striped">
     <thead>
       <tr>
-        {% for column in columns %}
-          <th>
-            <a href="./?ordering={% if ordering == column %}-{% endif %}{{ column }}">{{ column }}</a>
-          </th>
-        {% endfor %}
+        <th>
+          Domain
+        </th>
+        <th>
+          Darabszám
+        </th>
       </tr>
     </thead>
     <tbody>
       {% for row in query %}
         <tr>
-          {% for field in field_names %}
-            {% set value = row[field] %}
-            <td>
-              {% if value is none %}
-                NULL
-              {% else %}
-                {{ value|value_filter|safe }}
-              {% endif %}
-            </td>
-          {% endfor %}
-          {% set delete_id = row["id"] %}
           <td>
-            <a href="{{ url_for('table_content', table=table, page=page, ordering=ordering, delete=delete_id) }}">Törlés</a>
+            {% set value=row["domain"] %}
+            <a href="{{ url_for('table_content', table=table, search=value) }}">{{ value|value_filter|safe }}</a>
+          </td>
+          <td>
+            {% set count=row.ct %}
+            {{ count }}
+          </td>
+          {% set delete_domain = row["domain"] %}
+          <td>
+            <a href="{{ url_for('table_domains', table=table, page=page, ordering=ordering, delete=delete_domain) }}">Törlés</a>
           </td>
         </tr>
       {% endfor %}
@@ -64,19 +63,19 @@
   <nav>
     <ul class="pagination">
       <li class="{% if not previous_page %}disabled {% endif %}page-item">
-        <a class="page-link" href="{{ url_for('table_content', table=table, page=1, ordering=ordering, search=search) }}">&laquo;</a>
+        <a class="page-link" href="{{ url_for('table_domains', table=table, page=1, ordering=ordering, search=search) }}">&laquo;</a>
       </li>
       <li class="{% if not previous_page %}disabled {% endif %}page-item">
-        <a class="page-link" href="{{ url_for('table_content', table=table, page=previous_page, ordering=ordering, search=search) }}">&lsaquo;</a>
+        <a class="page-link" href="{{ url_for('table_domains', table=table, page=previous_page, ordering=ordering, search=search) }}">&lsaquo;</a>
       </li>
       <li class="page-item disabled">
         <span class="page-link">Oldal {{ page }} / {{ total_pages }}</span>
       </li>
       <li class="{% if not next_page %}disabled {% endif %}page-item">
-        <a class="page-link" href="{{ url_for('table_content', table=table, page=next_page, ordering=ordering, search=search) }}">&rsaquo;</a>
+        <a class="page-link" href="{{ url_for('table_domains', table=table, page=next_page, ordering=ordering, search=search) }}">&rsaquo;</a>
       </li>
       <li class="{% if not next_page %}disabled {% endif %}page-item">
-        <a class="page-link" href="{{ url_for('table_content', table=table, page=total_pages, ordering=ordering, search=search) }}">&raquo;</a>
+        <a class="page-link" href="{{ url_for('table_domains', table=table, page=total_pages, ordering=ordering, search=search) }}">&raquo;</a>
       </li>
     </ul>
   </nav>

@@ -14,6 +14,8 @@ from collections import namedtuple, OrderedDict
 from functools import wraps
 from getpass import getpass
 
+import pdb
+
 # Py3k compat.
 if sys.version_info[0] == 3:
     binary_types = (bytes, bytearray)
@@ -210,206 +212,77 @@ def require_table(fn):
         return fn(table, *args, **kwargs)
     return inner
 
-@app.route('/create-table/', methods=['POST'])
-def table_create():
-    table = (request.form.get('table_name') or '').strip()
-    if not table:
-        flash('Table name is required.', 'danger')
-        return redirect(request.form.get('redirect') or url_for('index'))
-
-    dataset[table]
-    return redirect(url_for('table_import', table=table))
+def get_request_data():
+    if request.method == 'POST':
+        return request.form
+    return request.args
 
 @app.route('/<table>/')
-@require_table
-def table_structure(table):
+def table_domains(table):
+    page_number = request.args.get('page') or ''
+    page_number = int(page_number) if page_number.isdigit() else 1
+
+    dataset.update_cache(table)
     ds_table = dataset[table]
-    model_class = ds_table.model_class
+
+    rows_per_page = app.config['ROWS_PER_PAGE']
+
+    dom_field = None
+    if ('domain' in ds_table.model_class._meta.fields):
+        dom_field = ds_table.model_class._meta.fields['domain']
+
+    search = request.args.get('search')
+    if search:
+        query = ds_table.model_class.select(dom_field, fn.COUNT(dom_field).alias('ct')).group_by(dom_field).where(dom_field.contains(search)).order_by(fn.COUNT(dom_field).desc())
+    else:
+        query = ds_table.model_class.select(dom_field, fn.COUNT(dom_field).alias('ct')).group_by(dom_field).order_by(fn.COUNT(dom_field).desc())
+
+    #pdb.set_trace()
+
+    total_rows = query.count()
+    total_pages = int(math.ceil(total_rows / float(rows_per_page)))
+    # Restrict bounds.
+    page_number = min(page_number, total_pages)
+    page_number = max(page_number, 1)
+
+    previous_page = page_number - 1 if page_number > 1 else None
+    next_page = page_number + 1 if page_number < total_pages else None
+
+    delete_domain = request.args.get('delete')
+    if delete_domain:
+        ds_table.delete(domain=delete_domain)
+
+    query = query.paginate(page_number, rows_per_page)
+
+    ordering = request.args.get('ordering')
+    if ordering:
+        field = ds_table.model_class._meta.columns[ordering.lstrip('-')]
+        if ordering.startswith('-'):
+            field = field.desc()
+        query = query.order_by(field)
+
+    field_names = ds_table.columns
+    columns = [f.column_name for f in ds_table.model_class._meta.sorted_fields]
 
     table_sql = dataset.query(
         'SELECT sql FROM sqlite_master WHERE tbl_name = ? AND type = ?',
         [table, 'table']).fetchone()[0]
 
     return render_template(
-        'table_structure.html',
-        columns=dataset.get_columns(table),
+        'table_domains.html',
+        columns=columns,
         ds_table=ds_table,
-        foreign_keys=dataset.get_foreign_keys(table),
-        indexes=dataset.get_indexes(table),
-        model_class=model_class,
+        field_names=field_names,
+        next_page=next_page,
+        ordering=ordering,
+        page=page_number,
+        previous_page=previous_page,
+        query=query,
         table=table,
-        table_sql=table_sql,
-        triggers=dataset.get_triggers(table))
-
-def get_request_data():
-    if request.method == 'POST':
-        return request.form
-    return request.args
-
-@app.route('/<table>/add-column/', methods=['GET', 'POST'])
-@require_table
-def add_column(table):
-    column_mapping = OrderedDict((
-        ('VARCHAR', CharField),
-        ('TEXT', TextField),
-        ('INTEGER', IntegerField),
-        ('REAL', FloatField),
-        ('BOOL', BooleanField),
-        ('BLOB', BlobField),
-        ('DATETIME', DateTimeField),
-        ('DATE', DateField),
-        ('TIME', TimeField),
-        ('DECIMAL', DecimalField)))
-
-    request_data = get_request_data()
-    col_type = request_data.get('type')
-    name = request_data.get('name', '')
-
-    if request.method == 'POST':
-        if name and col_type in column_mapping:
-            migrate(
-                migrator.add_column(
-                    table,
-                    name,
-                    column_mapping[col_type](null=True)))
-            flash('Column "%s" was added successfully!' % name, 'success')
-            dataset.update_cache(table)
-            return redirect(url_for('table_structure', table=table))
-        else:
-            flash('Name and column type are required.', 'danger')
-
-    return render_template(
-        'add_column.html',
-        col_type=col_type,
-        column_mapping=column_mapping,
-        name=name,
-        table=table)
-
-@app.route('/<table>/drop-column/', methods=['GET', 'POST'])
-@require_table
-def drop_column(table):
-    request_data = get_request_data()
-    name = request_data.get('name', '')
-    columns = dataset.get_columns(table)
-    column_names = [column.name for column in columns]
-
-    if request.method == 'POST':
-        if name in column_names:
-            migrate(migrator.drop_column(table, name))
-            flash('Column "%s" was dropped successfully!' % name, 'success')
-            dataset.update_cache(table)
-            return redirect(url_for('table_structure', table=table))
-        else:
-            flash('Name is required.', 'danger')
-
-    return render_template(
-        'drop_column.html',
-        columns=columns,
-        column_names=column_names,
-        name=name,
-        table=table)
-
-@app.route('/<table>/rename-column/', methods=['GET', 'POST'])
-@require_table
-def rename_column(table):
-    request_data = get_request_data()
-    rename = request_data.get('rename', '')
-    rename_to = request_data.get('rename_to', '')
-
-    columns = dataset.get_columns(table)
-    column_names = [column.name for column in columns]
-
-    if request.method == 'POST':
-        if (rename in column_names) and (rename_to not in column_names):
-            migrate(migrator.rename_column(table, rename, rename_to))
-            flash('Column "%s" was renamed successfully!' % rename, 'success')
-            dataset.update_cache(table)
-            return redirect(url_for('table_structure', table=table))
-        else:
-            flash('Column name is required and cannot conflict with an '
-                  'existing column\'s name.', 'danger')
-
-    return render_template(
-        'rename_column.html',
-        columns=columns,
-        column_names=column_names,
-        rename=rename,
-        rename_to=rename_to,
-        table=table)
-
-@app.route('/<table>/add-index/', methods=['GET', 'POST'])
-@require_table
-def add_index(table):
-    request_data = get_request_data()
-    indexed_columns = request_data.getlist('indexed_columns')
-    unique = bool(request_data.get('unique'))
-
-    columns = dataset.get_columns(table)
-
-    if request.method == 'POST':
-        if indexed_columns:
-            migrate(
-                migrator.add_index(
-                    table,
-                    indexed_columns,
-                    unique))
-            flash('Index created successfully.', 'success')
-            return redirect(url_for('table_structure', table=table))
-        else:
-            flash('One or more columns must be selected.', 'danger')
-
-    return render_template(
-        'add_index.html',
-        columns=columns,
-        indexed_columns=indexed_columns,
-        table=table,
-        unique=unique)
-
-@app.route('/<table>/drop-index/', methods=['GET', 'POST'])
-@require_table
-def drop_index(table):
-    request_data = get_request_data()
-    name = request_data.get('name', '')
-    indexes = dataset.get_indexes(table)
-    index_names = [index.name for index in indexes]
-
-    if request.method == 'POST':
-        if name in index_names:
-            migrate(migrator.drop_index(table, name))
-            flash('Index "%s" was dropped successfully!' % name, 'success')
-            return redirect(url_for('table_structure', table=table))
-        else:
-            flash('Index name is required.', 'danger')
-
-    return render_template(
-        'drop_index.html',
-        indexes=indexes,
-        index_names=index_names,
-        name=name,
-        table=table)
-
-@app.route('/<table>/drop-trigger/', methods=['GET', 'POST'])
-@require_table
-def drop_trigger(table):
-    request_data = get_request_data()
-    name = request_data.get('name', '')
-    triggers = dataset.get_triggers(table)
-    trigger_names = [trigger.name for trigger in triggers]
-
-    if request.method == 'POST':
-        if name in trigger_names:
-            dataset.query('DROP TRIGGER "%s";' % name)
-            flash('Trigger "%s" was dropped successfully!' % name, 'success')
-            return redirect(url_for('table_structure', table=table))
-        else:
-            flash('Trigger name is required.', 'danger')
-
-    return render_template(
-        'drop_trigger.html',
-        triggers=triggers,
-        trigger_names=trigger_names,
-        name=name,
-        table=table)
+        total_pages=total_pages,
+        total_rows=total_rows,
+        search=search,
+        true_content=None)
 
 @app.route('/<table>/content/')
 @require_table
@@ -419,8 +292,16 @@ def table_content(table):
 
     dataset.update_cache(table)
     ds_table = dataset[table]
-    total_rows = ds_table.all().count()
+
     rows_per_page = app.config['ROWS_PER_PAGE']
+
+    search = request.args.get('search')
+    if search:
+        query = ds_table.model_class.select().where(ds_table.model_class._meta.fields['domain'].contains(search))
+    else:
+        query = ds_table.all()
+
+    total_rows = query.count()
     total_pages = int(math.ceil(total_rows / float(rows_per_page)))
     # Restrict bounds.
     page_number = min(page_number, total_pages)
@@ -429,7 +310,11 @@ def table_content(table):
     previous_page = page_number - 1 if page_number > 1 else None
     next_page = page_number + 1 if page_number < total_pages else None
 
-    query = ds_table.all().paginate(page_number, rows_per_page)
+    delete_index = request.args.get('delete')
+    if delete_index:
+        ds_table.delete(id=delete_index)
+
+    query = query.paginate(page_number, rows_per_page)
 
     ordering = request.args.get('ordering')
     if ordering:
@@ -457,136 +342,10 @@ def table_content(table):
         query=query,
         table=table,
         total_pages=total_pages,
-        total_rows=total_rows)
+        total_rows=total_rows,
+        search=search,
+        true_content=True)
 
-@app.route('/<table>/query/', methods=['GET', 'POST'])
-@require_table
-def table_query(table):
-    data = []
-    data_description = error = row_count = sql = None
-
-    if request.method == 'POST':
-        sql = request.form['sql']
-        if 'export_json' in request.form:
-            return export(table, sql, 'json')
-        elif 'export_csv' in request.form:
-            return export(table, sql, 'csv')
-
-        try:
-            cursor = dataset.query(sql)
-        except Exception as exc:
-            error = str(exc)
-        else:
-            data = cursor.fetchall()[:app.config['MAX_RESULT_SIZE']]
-            data_description = cursor.description
-            row_count = cursor.rowcount
-    else:
-        if request.args.get('sql'):
-            sql = request.args.get('sql')
-        else:
-            sql = 'SELECT *\nFROM "%s"' % (table)
-
-    table_sql = dataset.query(
-        'SELECT sql FROM sqlite_master WHERE tbl_name = ? AND type = ?',
-        [table, 'table']).fetchone()[0]
-
-    return render_template(
-        'table_query.html',
-        data=data,
-        data_description=data_description,
-        error=error,
-        query_images=get_query_images(),
-        row_count=row_count,
-        sql=sql,
-        table=table,
-        table_sql=table_sql)
-
-@app.route('/table-definition/', methods=['POST'])
-def set_table_definition_preference():
-    key = 'show'
-    show = False
-    if request.form.get(key) and request.form.get(key) != 'false':
-        session[key] = show = True
-    elif key in session:
-        del session[key]
-    return jsonify({key: show})
-
-def export(table, sql, export_format):
-    model_class = dataset[table].model_class
-    query = model_class.raw(sql).dicts()
-    buf = StringIO()
-    if export_format == 'json':
-        kwargs = {'indent': 2}
-        filename = '%s-export.json' % table
-        mimetype = 'text/javascript'
-    else:
-        kwargs = {}
-        filename = '%s-export.csv' % table
-        mimetype = 'text/csv'
-
-    dataset.freeze(query, export_format, file_obj=buf, **kwargs)
-
-    response_data = buf.getvalue()
-    response = make_response(response_data)
-    response.headers['Content-Length'] = len(response_data)
-    response.headers['Content-Type'] = mimetype
-    response.headers['Content-Disposition'] = 'attachment; filename=%s' % (
-        filename)
-    response.headers['Expires'] = 0
-    response.headers['Pragma'] = 'public'
-    return response
-
-@app.route('/<table>/import/', methods=['GET', 'POST'])
-@require_table
-def table_import(table):
-    count = None
-    request_data = get_request_data()
-    strict = bool(request_data.get('strict'))
-
-    if request.method == 'POST':
-        file_obj = request.files.get('file')
-        if not file_obj:
-            flash('Please select an import file.', 'danger')
-        elif not file_obj.filename.lower().endswith(('.csv', '.json')):
-            flash('Unsupported file-type. Must be a .json or .csv file.',
-                  'danger')
-        else:
-            if file_obj.filename.lower().endswith('.json'):
-                format = 'json'
-            else:
-                format = 'csv'
-            try:
-                with dataset.transaction():
-                    count = dataset.thaw(
-                        table,
-                        format=format,
-                        file_obj=file_obj.stream,
-                        strict=strict)
-            except Exception as exc:
-                flash('Error importing file: %s' % exc, 'danger')
-            else:
-                flash(
-                    'Successfully imported %s objects from %s.' % (
-                        count, file_obj.filename),
-                    'success')
-                return redirect(url_for('table_content', table=table))
-
-    return render_template(
-        'table_import.html',
-        count=count,
-        strict=strict,
-        table=table)
-
-@app.route('/<table>/drop/', methods=['GET', 'POST'])
-@require_table
-def drop_table(table):
-    if request.method == 'POST':
-        model_class = dataset[table].model_class
-        model_class.drop_table()
-        flash('Table "%s" dropped successfully.' % table, 'success')
-        return redirect(url_for('index'))
-
-    return render_template('drop_table.html', table=table)
 
 @app.template_filter('format_index')
 def format_index(index_sql):
