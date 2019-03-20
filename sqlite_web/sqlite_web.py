@@ -78,7 +78,7 @@ ROWS_PER_PAGE = 50
 SECRET_KEY = 'sqlite-database-browser-0.1.0'
 
 # Adatgyűjtés konstansok
-DATABASE_PATH = "D:\\sqlite-web\\sqlite-web\\privadome.db"
+DATABASE_PATH = "D:\\sqlite-web\\sqlite-web\\a.a"
 SAS_URL = "https://adatgyujtes.azurewebsites.net/api/adatgyujtesSAS"
 ADATGYUJTES_ID = "tesztID"
 
@@ -300,10 +300,10 @@ def upload_page():
         upload_path="example.path")
 
 import threading
-import queue
 import requests
+import collections
 
-progress_queue = queue.Queue(1)
+progress_deque = collections.deque([],1)
 
 global_lock = threading.Lock()
 
@@ -312,7 +312,7 @@ def progress_callback(current, total):
     """Put the Azure upload progress into the inter-thread queue"""
     print("Progress callback.", file=sys.stderr)
     print("{} {}".format(current, total), file=sys.stderr)
-    progress_queue.put([current, total])
+    progress_deque.append([current, total])
 
 def get_azure_credentials():
     """Get the Azure credentials for the storage account"""
@@ -389,12 +389,13 @@ def upload_progress():
             try:
                 print("Event stream callback.", file=sys.stderr)
                 # Get upload progress from inter-thread queue.
-                progress_data = progress_queue.get()
+                progress_data = progress_deque.pop()
                 print("Yielding: data: {} {}\n\n".format(progress_data[0], progress_data[1]), file=sys.stderr)
                 # Send the progress to the client.
                 yield "data: {} {}\n\n".format(progress_data[0], progress_data[1])
-            except queue.Empty:
-                raise StopIteration
+            except IndexError:
+                print("Queue empty.", file=sys.stderr)
+                pass
         return Response(upload_event_stream(), mimetype='text/event-stream')
     except Exception as ex:
         print(ex, file=sys.stderr)
