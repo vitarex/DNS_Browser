@@ -33,7 +33,7 @@ else:
 try:
     from flask import (
         Flask, abort, escape, flash, jsonify, make_response, Markup, redirect,
-        render_template, request, session, url_for)
+        render_template, request, session, url_for, Response)
 except ImportError:
     raise RuntimeError('Unable to import flask module. Install by running '
                        'pip install flask')
@@ -76,6 +76,11 @@ DEBUG = False
 MAX_RESULT_SIZE = 1000
 ROWS_PER_PAGE = 50
 SECRET_KEY = 'sqlite-database-browser-0.1.0'
+
+# Adatgyűjtés konstansok
+DATABASE_PATH = "D:\\sqlite-web\\sqlite-web\\privadome.db"
+SAS_URL = "https://adatgyujtes.azurewebsites.net/api/adatgyujtesSAS"
+ADATGYUJTES_ID = "tesztID"
 
 app = Flask(
     __name__,
@@ -283,6 +288,118 @@ def table_domains(table):
         total_rows=total_rows,
         search=search,
         true_content=None)
+
+
+import azure.storage.blob as blob
+import azure.storage.common as common
+
+@app.route('/upload/')
+def upload_page():
+    return render_template(
+        "upload.html",
+        upload_path="example.path")
+
+import threading
+import queue
+import requests
+
+progress_queue = queue.Queue(1)
+
+global_lock = threading.Lock()
+
+
+def progress_callback(current, total):
+    """Put the Azure upload progress into the inter-thread queue"""
+    print("Progress callback.", file=sys.stderr)
+    print("{} {}".format(current, total), file=sys.stderr)
+    progress_queue.put([current, total])
+
+def get_azure_credentials():
+    """Get the Azure credentials for the storage account"""
+    # Get the credentials from the Azure API endpoint
+    credentials = requests.post(SAS_URL, json={"id": ADATGYUJTES_ID}).json()
+    # In case of a server error the API responds with a JSON with an error field in it
+    if "error" in credentials:
+        raise Exception("Couldn't acquire Azure credentials: " + credentials.error)
+    return credentials
+
+def upload_task(credentials):
+    """Start the database upload."""
+    try:
+        # Acquire global lock.
+        if not global_lock.acquire(False):
+            raise AssertionError("Couldn't acquire global lock.")
+        # Initialize the blob service from the Azure SDK.
+        blobService = blob.BlockBlobService(credentials["accountName"], None, credentials["sasToken"])
+        # Change the upload parameters, so that the progress callback gets called more frequently, this might also raise the robustness of the upload.
+        blobService.MAX_SINGLE_PUT_SIZE = 1024*1024
+        blobService.MAX_BLOCK_SIZE = 1024*1024
+        # Create the blob.
+        blobService.create_blob_from_path(credentials["containerName"], credentials["id"]+ "_" + str(datetime.datetime.utcnow().isoformat()) + ".db", DATABASE_PATH, progress_callback=progress_callback, timeout=200)
+        # Release global lock.
+        global_lock.release()
+        print("Upload finished.", file=sys.stderr)
+    except Exception as e:
+        print(e, file=sys.stderr)
+    finally:
+        # We absolutely have to release the lock, even if an error occurs.
+        if global_lock.locked():
+            global_lock.release()
+
+def start_upload():
+    """Upload the database to an Azure blob container."""
+    # Lock object so a duplicate upload can't be started.
+    global global_lock
+    try:
+        # Check if the lock is open.
+        if global_lock.locked():
+            raise AssertionError("Global lock is locked. Upload probably already underway.")
+        print("Starting upload.", file=sys.stderr)
+        # Get Azure credentials.
+        credentials = get_azure_credentials()
+        # Start the upload in a separate thread.
+        if all(s in credentials for s in ('accountName', 'sasToken', 'containerName', 'id')):
+            threading.Thread(target=upload_task, args=[credentials]).start()
+        else:
+            raise AssertionError("Incorrect Azure credentials received.")
+    except AssertionError as ae:
+        print(ae, file=sys.stderr)
+        raise ae
+
+import json
+
+@app.route('/upload_database/')
+def upload_database():
+    """Simple endpoint that starts the upload in a separate thread."""
+    try:
+        print("Trying to start upload thread.", file=sys.stderr)
+        start_upload()
+        # If the upload started successfully, notify the client about it.
+        return json.dumps({'success':True}), 200, {'ContentType':'application/json'} 
+    except Exception as ex:
+        print(ex, file=sys.stderr)
+        return json.dumps({'success':False, 'error_message': str(ex)}), 409, {'ContentType':'application/json'}
+
+@app.route('/upload_progress/')
+def upload_progress():
+    """Keep the client up to date about the progress of the upload."""
+    try:
+        def upload_event_stream():
+            """Async event stream callback."""
+            try:
+                print("Event stream callback.", file=sys.stderr)
+                # Get upload progress from inter-thread queue.
+                progress_data = progress_queue.get()
+                print("Yielding: data: {} {}\n\n".format(progress_data[0], progress_data[1]), file=sys.stderr)
+                # Send the progress to the client.
+                yield "data: {} {}\n\n".format(progress_data[0], progress_data[1])
+            except queue.Empty:
+                raise StopIteration
+        return Response(upload_event_stream(), mimetype='text/event-stream')
+    except Exception as ex:
+        print(ex, file=sys.stderr)
+        return str(ex), 500, {'ContentType':'application/json'}
+
 
 @app.route('/<table>/content/')
 @require_table

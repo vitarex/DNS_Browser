@@ -1,0 +1,55 @@
+{% extends "base_tables.html" %}
+
+{% block extra_scripts %}
+    <script type="text/javascript">
+        $(function() {
+            $('.btn-primary').on('click', function(e) {
+                $.ajax({
+                    type: 'GET',
+                    url: '/upload_database/',
+                    success: function(response){
+                        if (JSON.parse(response).success == true) upload_progress()
+                        else console.log("Couldn't start upload.")
+                    },
+                    error: function(response){
+                        console.log("An error occured: " + response)
+                    }
+                })
+            })
+        })
+        function upload_progress() {
+            var source = new EventSource("/upload_progress/");
+            console.log('Upload started');
+            source.onmessage = function(event) {
+                try {
+                    console.log(event.data)
+                    let dataL = event.data.split(" ")
+    
+                    $('.progress-bar').css('width', 100*dataL[0]/dataL[1]+'%').attr('aria-valuenow', event.data);
+                    $('.progress-textvalue').text(parseFloat(dataL[0]/1048576).toFixed(2) + '/' + parseFloat(dataL[1]/1048576).toFixed(2))
+    
+                    if (parseInt(dataL[0]) == parseInt(dataL[1])){
+                        source.close()
+                    }
+                } catch (error) {
+                    console.log(error)
+                }
+                finally {
+                    if (!source.CLOSED) source.close()
+                }
+            }
+        }
+    </script>
+{% endblock %}
+
+{% block content_title %}
+    <h1>Feltöltés</h1>
+{% endblock %}
+
+{% block content %}
+    <button class="btn btn-primary" class="upload_button" name="upload_database">Felöltés</button>
+    <div class="progress" style="width: 50%; margin: 50px;">
+        <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+    </div>
+    <span class="progress-textvalue"></span> <span>  MByte</span>
+{% endblock %}
