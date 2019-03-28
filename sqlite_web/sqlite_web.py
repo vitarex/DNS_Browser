@@ -78,10 +78,10 @@ ROWS_PER_PAGE = 50
 SECRET_KEY = 'sqlite-database-browser-0.1.0'
 
 # Adatgyűjtés konstansok
-DATABASE_PATH = "D:\\sqlite-web\\sqlite-web\\privadome.db"
+DATABASE_PATH = "D:\\sqlite-web\\sqlite-web\\test.zip"
 ZIPPED_DB_NAME = "zipped_db.zip"
 SAS_URL = "https://adatgyujtes.azurewebsites.net/api/adatgyujtesSAS"
-ADATGYUJTES_ID = "tesztID"
+ADATGYUJTES_ID = "tesztIDx"
 
 app = Flask(
     __name__,
@@ -303,18 +303,34 @@ def upload_page():
 import threading
 import requests
 import collections
+import queue
 import encryption
 import zipfile
+from event import QueueEvent
 
 progress_deque = collections.deque([],1)
 
+progress_queue = queue.Queue()
+
 global_lock = threading.Lock()
+
+def queue_event_data(data):
+    """Queue an SSE with dictionary data"""
+    print("Queuing {}".format(data), file=sys.stderr)
+    progress_queue.put(QueueEvent(json.dumps(data)))
+    time.sleep(0)
 
 def progress_callback(current, total):
     """Put the Azure upload progress into the inter-thread queue"""
     print("Progress callback.", file=sys.stderr)
-    print("{} {}".format(current, total), file=sys.stderr)
-    progress_deque.append([current, total])
+    queue_event_data({
+        "type": "upload_progress",
+        "progress_data": {
+            "current": current,
+            "total": total,
+            "finished": total <= current
+        }
+    })
 
 def get_azure_credentials():
     """Get the Azure credentials for the storage account"""
@@ -322,7 +338,7 @@ def get_azure_credentials():
     credentials = requests.post(url=SAS_URL, json={"id": ADATGYUJTES_ID}).json()
     # In case of a server error the API responds with a JSON with an error field in it
     if "error" in credentials:
-        raise Exception("Couldn't acquire Azure credentials: " + credentials.error)
+        raise Exception("Nem tudtuk hitelesíteni az eszközt: " + credentials["error"])
     return credentials
 
 def zip_database():
@@ -349,24 +365,60 @@ def init_blob_service(credentials):
     blobService.MAX_BLOCK_SIZE = 1024*1024
     return blobService
 
-def upload_task(blobService, credentials):
+def upload_task():
     """Start the database upload."""
     try:
         # Acquire global lock.
         if not global_lock.acquire(False):
             raise AssertionError("Couldn't acquire global lock.")
-        # Create the blob
-        blobService.create_blob_from_path(
-            container_name=credentials["containerName"],
-            blob_name=credentials["id"]+ "_" + str(datetime.datetime.utcnow().isoformat()) + ".zip",
-            file_path=ZIPPED_DB_NAME,
-            progress_callback=progress_callback,
-            timeout=200)
+        # Zip database
+        print("Zipping database...", file=sys.stderr)
+        queue_event_data({
+            "type": "started",
+            "subject": "compress"
+        })
+        zip_database()
+        queue_event_data({
+            "type": "completed",
+            "subject": "compress"
+        })
+        # Get Azure credentials
+        print("Getting credentials...", file=sys.stderr)
+        queue_event_data({
+            "type": "started",
+            "subject": "authenticate"
+        })
+        credentials = get_azure_credentials()
+        if all(s in credentials for s in ('accountName', 'sasToken', 'containerName', 'id')):
+            # Initialize the Azure blob service
+            print("Initializing Azure blob service...", file=sys.stderr)
+            blobService = init_blob_service(credentials=credentials)
+            queue_event_data({
+                "type": "completed",
+                "subject": "authenticate"
+            })
+            queue_event_data({
+                "type": "started",
+                "subject": "upload"
+            })
+            # Create the blob
+            blobService.create_blob_from_path(
+                container_name=credentials["containerName"],
+                blob_name=credentials["id"]+ "_" + str(datetime.datetime.utcnow().isoformat()) + ".zip",
+                file_path=ZIPPED_DB_NAME,
+                progress_callback=progress_callback,
+                timeout=200)
+        else:
+            raise AssertionError("Incorrect Azure credentials received.")
         # Release global lock
         global_lock.release()
         print("Upload finished.", file=sys.stderr)
     except Exception as e:
         print(e, file=sys.stderr)
+        queue_event_data({
+            "type": "error",
+            "message": str(e)
+        })
     finally:
         # We absolutely have to release the lock, even if an error occurs
         if global_lock.locked():
@@ -380,21 +432,9 @@ def start_upload():
         # Check if the lock is open
         if global_lock.locked():
             raise AssertionError("Global lock is locked. Upload probably already underway.")
-        # Zip database
-        print("Zipping database...", file=sys.stderr)
-        zip_database()
-        print("Getting credentials...", file=sys.stderr)
-        # Get Azure credentials
-        credentials = get_azure_credentials()
-        if all(s in credentials for s in ('accountName', 'sasToken', 'containerName', 'id')):
-            # Initialize the Azure blob service
-            print("Initializing Azure blob service...", file=sys.stderr)
-            blobService = init_blob_service(credentials=credentials)
-            # Start the upload in a separate thread
-            print("Starting upload thread...", file=sys.stderr)
-            threading.Thread(target=upload_task, args=[blobService, credentials]).start()
-        else:
-            raise AssertionError("Incorrect Azure credentials received.")
+        # Start the upload in a separate thread
+        print("Starting upload thread...", file=sys.stderr)
+        threading.Thread(target=upload_task).start()
     except AssertionError as ae:
         print(ae, file=sys.stderr)
         raise ae
@@ -420,15 +460,18 @@ def upload_progress():
         def upload_event_stream():
             """Async event stream callback."""
             try:
-                print("Event stream callback.", file=sys.stderr)
-                # Get upload progress from inter-thread queue
-                progress_data = progress_deque.pop()
-                print("Yielding: data: {} {}\n\n".format(progress_data[0], progress_data[1]), file=sys.stderr)
-                # Send the progress to the client
-                yield "data: {} {}\n\n".format(progress_data[0], progress_data[1])
-            except IndexError:
-                print("Queue empty.", file=sys.stderr)
-                pass
+                while True:
+                    print("Event stream callback.", file=sys.stderr)
+                    # Get upload progress from inter-thread queue
+                    progress_data = progress_queue.get(block=True, timeout=300)
+                    print("Yielding: {}".format(progress_data.message()), file=sys.stderr)
+                    # Send the progress to the client
+                    yield progress_data.message()
+                    if ("error" in progress_data.message()):
+                        return
+            except Exception as ex:
+                print("Event stream encountered an error.", file=sys.stderr)
+                return
         return Response(upload_event_stream(), mimetype='text/event-stream')
     except Exception as ex:
         print(ex, file=sys.stderr)

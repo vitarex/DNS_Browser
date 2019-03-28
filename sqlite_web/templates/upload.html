@@ -8,7 +8,7 @@
                     type: 'GET',
                     url: '/upload_database/',
                     success: function(response){
-                        if (JSON.parse(response).success == true) upload_progress()
+                        if (JSON.parse(response).success == true) progress()
                         else console.log("Couldn't start upload.")
                     },
                     error: function(response){
@@ -17,27 +17,71 @@
                 })
             })
         })
-        function upload_progress() {
+        function progress() {
             var source = new EventSource("/upload_progress/");
             console.log('Upload started');
             source.onmessage = function(event) {
                 try {
-                    console.log(event.data)
-                    let dataL = event.data.split(" ")
-    
-                    $('.progress-bar').css('width', 100*dataL[0]/dataL[1]+'%').attr('aria-valuenow', event.data);
-                    $('.progress-textvalue').text(parseFloat(dataL[0]/1048576).toFixed(2) + '/' + parseFloat(dataL[1]/1048576).toFixed(2))
-    
-                    if (parseInt(dataL[0]) == parseInt(dataL[1])){
-                        source.close()
+                    rec_data = JSON.parse(event.data)
+                    console.log(rec_data)
+                    switch (rec_data.type) {
+                        case "started":
+                            start_section(rec_data.subject)
+                            break;
+                        case "completed":
+                            complete_section(rec_data.subject)
+                            break;
+                        case "upload_progress":
+                            if (upload_progress(rec_data.progress_data)) complete_section("upload")
+                            break;
+                        case "error":
+                            source.close()
+                            error(rec_data.message)
+                            break;
+                        default:
+                            break;
                     }
                 } catch (error) {
                     console.log(error)
+                    error(error)
                 }
                 finally {
                     if (!source.CLOSED) source.close()
                 }
             }
+            source.onerror = function(event) {
+                error(event.data)
+            }
+        }
+        function start_section(subject) {
+            console.log("Starting section " + subject)
+            selector = '.' + subject + '-bundle'
+            $(selector).removeClass('text-secondary').addClass('text-primary active-section')
+            $(selector + ' > .indicator').removeClass('d-none')
+            $(selector + " > .textvalue > .dynamic").html("...    ")
+        }
+        function complete_section(subject) {
+            console.log("Completed section " + subject)
+            selector = '.' + subject + '-bundle'
+            $(selector).removeClass('text-primary active-section').addClass('text-success')
+            $(selector + ' > .indicator').addClass('d-none')
+            $(selector + " > .textvalue > .dynamic").html('<i class="ficon far fa-check-circle"></i>')
+        }
+        function upload_progress(progress_data) {
+            console.log(progress_data)
+            $('.progress-bar').css('width', 100*progress_data.current/progress_data.total+'%').attr('aria-valuenow', 100*progress_data.current/progress_data.total);
+            $('.upload-bundle > .textvalue > .dynamic').text(":   " + parseFloat(progress_data.current/1048576).toFixed(2) + '/' + parseFloat(progress_data.total/1048576).toFixed(2) + ' MByte')
+            return progress_data.finished
+        }
+        function error(message) {
+            console.log("Error: " + message)
+            $(".active-section").removeClass('text-primary').addClass('text-danger')
+            $(".active-section > .indicator").addClass('d-none')
+            $(".active-section > .textvalue > .dynamic").html('<i class="ficon far fa-times-circle"></i>')
+            $(".active-section > .error-span").removeClass("d-none").addClass("d-block")
+            if (message) $(".active-section > .error-span > .dynamic").html(message)
+            else $(".active-section > .error-span > .dynamic").html("Ismeretlen hiba. A szerver lehet, hogy elérhetetlenné vált.")
+            
         }
     </script>
 {% endblock %}
@@ -48,8 +92,27 @@
 
 {% block content %}
     <button class="btn btn-primary" class="upload_button" name="upload_database">Felöltés</button>
-    <div class="progress" style="width: 50%; margin: 50px;">
-        <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+    <div>
+        <p class="compress-bundle text-secondary">
+            <span class="textvalue">1. Tömörítés<span class="dynamic"></span></span>
+            <span class="indicator spinner-border spinner-border-sm d-none" role="status"></span>
+            <span class="error-span d-none">Hiba történt: <span class="dynamic"></span></span>
+        </p>
     </div>
-    <span class="progress-textvalue"></span> <span>  MByte</span>
+    <div>
+        <p class="authenticate-bundle text-secondary">
+            <span class="textvalue">2. Hitelesítés<span class="dynamic"></span></span>
+            <span class="indicator spinner-border spinner-border-sm d-none" role="status"></span>
+            <span class="error-span d-none">Hiba történt: <span class="dynamic"></span></span>
+        </p>
+    </div>
+    <div>
+        <p class="upload-bundle text-secondary">
+            <span class="textvalue">3. Titkosítás és feltöltés<span class="dynamic"></span></span>
+            <span class="indicator progress d-none" style="width: 50%; margin: 10px 0 10px 40px;">
+                    <span class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></span>
+                </span>
+            <span class="error-span d-none">Hiba történt: <span class="dynamic"></span></span>
+        </p>
+    </div>
 {% endblock %}
