@@ -29,10 +29,11 @@
                             start_section(rec_data.subject)
                             break;
                         case "completed":
+                            if (rec_data.subject == "upload") source.close()
                             complete_section(rec_data.subject)
                             break;
                         case "upload_progress":
-                            if (upload_progress(rec_data.progress_data)) complete_section("upload")
+                            upload_progress(rec_data.progress_data)
                             break;
                         case "error":
                             source.close()
@@ -50,6 +51,7 @@
                 }
             }
             source.onerror = function(event) {
+                source.close()
                 error(event.data)
             }
         }
@@ -71,7 +73,6 @@
             console.log(progress_data)
             $('.progress-bar').css('width', 100*progress_data.current/progress_data.total+'%').attr('aria-valuenow', 100*progress_data.current/progress_data.total);
             $('.upload-bundle > .textvalue > .dynamic').text(":   " + parseFloat(progress_data.current/1048576).toFixed(2) + '/' + parseFloat(progress_data.total/1048576).toFixed(2) + ' MByte')
-            return progress_data.finished
         }
         function error(message) {
             console.log("Error: " + message)

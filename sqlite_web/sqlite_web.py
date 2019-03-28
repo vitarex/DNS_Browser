@@ -78,10 +78,10 @@ ROWS_PER_PAGE = 50
 SECRET_KEY = 'sqlite-database-browser-0.1.0'
 
 # Adatgyűjtés konstansok
-DATABASE_PATH = "D:\\sqlite-web\\sqlite-web\\test.zip"
+DATABASE_PATH = "D:\\sqlite-web\\sqlite-web\\privadome.db"
 ZIPPED_DB_NAME = "zipped_db.zip"
 SAS_URL = "https://adatgyujtes.azurewebsites.net/api/adatgyujtesSAS"
-ADATGYUJTES_ID = "tesztIDx"
+ADATGYUJTES_ID = "tesztID"
 
 app = Flask(
     __name__,
@@ -408,6 +408,10 @@ def upload_task():
                 file_path=ZIPPED_DB_NAME,
                 progress_callback=progress_callback,
                 timeout=200)
+            queue_event_data({
+                "type": "completed",
+                "subject": "upload"
+            })
         else:
             raise AssertionError("Incorrect Azure credentials received.")
         # Release global lock
@@ -460,18 +464,19 @@ def upload_progress():
         def upload_event_stream():
             """Async event stream callback."""
             try:
-                while True:
+                stream_active = True
+                while stream_active:
                     print("Event stream callback.", file=sys.stderr)
                     # Get upload progress from inter-thread queue
-                    progress_data = progress_queue.get(block=True, timeout=300)
+                    progress_data = progress_queue.get(block=True, timeout=5)
                     print("Yielding: {}".format(progress_data.message()), file=sys.stderr)
                     # Send the progress to the client
                     yield progress_data.message()
-                    if ("error" in progress_data.message()):
-                        return
+                    if ("error" in progress_data.message() or 'type": "completed", "subject": "upload"' in progress_data.message()):
+                        stream_active = False
             except Exception as ex:
                 print("Event stream encountered an error.", file=sys.stderr)
-                return
+                stream_active = False
         return Response(upload_event_stream(), mimetype='text/event-stream')
     except Exception as ex:
         print(ex, file=sys.stderr)
