@@ -469,7 +469,7 @@ def upload_progress():
                 while stream_active:
                     print("Event stream callback.", file=sys.stderr)
                     # Get upload progress from inter-thread queue
-                    progress_data = progress_queue.get(block=True, timeout=5)
+                    progress_data = progress_queue.get(block=True, timeout=30)
                     print("Yielding: {}".format(progress_data.message()), file=sys.stderr)
                     # Send the progress to the client
                     yield progress_data.message()

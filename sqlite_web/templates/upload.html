@@ -5,7 +5,7 @@
     <script type="text/javascript">
         $(function() {
             $('.fwd-nav-btn').addClass('disabled')
-            $('.btn-primary').on('click', function(e) {
+            $('.upload-button').on('click', function(e) {
                 $.ajax({
                     type: 'GET',
                     url: '/upload_database/',
@@ -72,6 +72,7 @@
             $(selector + " > .textvalue > .dynamic").html('<i class="ficon far fa-check-circle"></i>')
             if (subject == "upload") {
                 $('.fwd-nav-btn').removeClass('disabled')
+                $('.bck-nav-btn').addClass('disabled')
             }
         }
         function upload_progress(progress_data) {
@@ -104,7 +105,7 @@ A feltöltés befejezése után kattintson a tovább gombra.
 {% block header_nav_forward %}{{ url_for('upload_page') }}{% endblock %}
 
 {% block content %}
-    <button class="btn btn-primary" class="upload_button" name="upload_database">Feltöltés</button>
+    <button class="btn btn-primary upload-button">Feltöltés</button>
     <div>
         <p class="compress-bundle text-secondary">
             <span class="textvalue">1. Tömörítés<span class="dynamic"></span></span>
