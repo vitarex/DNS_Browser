@@ -196,6 +196,10 @@ class SqliteDataSet(DataSet):
 def index():
     return render_template('index.html', sqlite=sqlite3)
 
+@app.route('/thanks/')
+def thanks():
+    return render_template('thanks.html')
+
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
