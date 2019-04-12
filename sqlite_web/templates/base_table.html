@@ -1,16 +1,33 @@
 {% extends "base_tables.html" %}
+{% block nav_db_active %} active{% endblock %}
 
 {% block content_title %}
-  <a href="{{ url_for('index') }}">{{ dataset.base_name }}</a> &mdash; {{ table }}
+  Kérések listája
 {% endblock %}
+{% block content_desc %}
+  Ezen az oldalon törölhet olyan adatokat, amelyeket nem szeretne megosztani velünk. Ilyenek lehetnek személyes azonosításra felhasználható vagy más okból szenzitív domain-ek.
+  A kéréseket két módon lehet csoportosítottuk:
+  <ul>
+    <li>
+      Az első oldalon domain-ek szerint vannak csoportosítva a kérések. Itt ki tud törölni egy egész domain-t az adatbázisból, pl. minden youtube.com felé intézett kérést.
+    </li>
+    <li>
+      A második oldalon minden sor egyetlen kérést azonosít. Itt egyenként törölhetők a kérések. A fejléc elemeire kattintva a sorrend is megváltoztatható.
+    </li>
+  </ul>
+  Ha elégedett az adatokkal kattintson a tovább gombra.
+{% endblock %}
+
+{% block header_nav_back %}{{ url_for('index') }}{% endblock %}
+{% block header_nav_forward %}{{ url_for('upload_page') }}{% endblock %}
 
 {% block content %}
   <ul class="nav nav-tabs">
     <li class="nav-item">
-      <a class="nav-link{% block domain_tab_class %}{% endblock %}" href="{{ url_for('table_domains', table=table) }}">Domainek</a>
+      <a class="nav-link{% block domain_tab_class %}{% endblock %}" href="{{ url_for('table_domains') }}">Domainek</a>
     </li>
     <li class="nav-item">
-      <a class="nav-link{% block content_tab_class %}{% endblock %}" href="{{ url_for('table_content', table=table) }}">Kérések</a>
+      <a class="nav-link{% block content_tab_class %}{% endblock %}" href="{{ url_for('table_queries') }}">Kérések</a>
     </li>
     {% block inner_nav %}{% endblock %}
   </ul>

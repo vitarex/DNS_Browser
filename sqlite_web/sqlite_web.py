@@ -72,7 +72,7 @@ from playhouse.migrate import migrate
 
 
 CUR_DIR = os.path.realpath(os.path.dirname(__file__))
-DEBUG = False
+DEBUG = True
 MAX_RESULT_SIZE = 1000
 ROWS_PER_PAGE = 50
 SECRET_KEY = 'sqlite-database-browser-0.1.0'
@@ -223,8 +223,10 @@ def get_request_data():
         return request.form
     return request.args
 
-@app.route('/<table>/')
-def table_domains(table):
+@app.route('/domains/')
+def table_domains():
+    table = "queries"
+
     page_number = request.args.get('page') or ''
     page_number = int(page_number) if page_number.isdigit() else 1
 
@@ -284,7 +286,6 @@ def table_domains(table):
         page=page_number,
         previous_page=previous_page,
         query=query,
-        table=table,
         total_pages=total_pages,
         total_rows=total_rows,
         search=search,
@@ -483,9 +484,72 @@ def upload_progress():
         return str(ex), 500, {'ContentType':'application/json'}
 
 
-@app.route('/<table>/content/')
-@require_table
-def table_content(table):
+@app.route('/queries/')
+def table_queries():
+    table="queries"
+
+    page_number = request.args.get('page') or ''
+    page_number = int(page_number) if page_number.isdigit() else 1
+
+    dataset.update_cache(table)
+    ds_table = dataset[table]
+
+    rows_per_page = app.config['ROWS_PER_PAGE']
+
+    search = request.args.get('search')
+    if search:
+        query = ds_table.model_class.select().where(ds_table.model_class._meta.fields['domain'].contains(search))
+    else:
+        query = ds_table.all()
+
+    total_rows = query.count()
+    total_pages = int(math.ceil(total_rows / float(rows_per_page)))
+    # Restrict bounds.
+    page_number = min(page_number, total_pages)
+    page_number = max(page_number, 1)
+
+    previous_page = page_number - 1 if page_number > 1 else None
+    next_page = page_number + 1 if page_number < total_pages else None
+
+    delete_index = request.args.get('delete')
+    if delete_index:
+        ds_table.delete(id=delete_index)
+
+    query = query.paginate(page_number, rows_per_page)
+
+    ordering = request.args.get('ordering')
+    if ordering:
+        field = ds_table.model_class._meta.columns[ordering.lstrip('-')]
+        if ordering.startswith('-'):
+            field = field.desc()
+        query = query.order_by(field)
+
+    field_names = ds_table.columns
+    columns = [f.column_name for f in ds_table.model_class._meta.sorted_fields]
+
+    table_sql = dataset.query(
+        'SELECT sql FROM sqlite_master WHERE tbl_name = ? AND type = ?',
+        [table, 'table']).fetchone()[0]
+    
+    return render_template(
+        'table_queries.html',
+        columns=columns,
+        ds_table=ds_table,
+        field_names=field_names,
+        next_page=next_page,
+        ordering=ordering,
+        page=page_number,
+        previous_page=previous_page,
+        query=query,
+        total_pages=total_pages,
+        total_rows=total_rows,
+        search=search,
+        true_content=True)
+
+@app.route('/full/')
+def table_full():
+    table = "queries"
+
     page_number = request.args.get('page') or ''
     page_number = int(page_number) if page_number.isdigit() else 1
 
@@ -530,7 +594,7 @@ def table_content(table):
         [table, 'table']).fetchone()[0]
 
     return render_template(
-        'table_content.html',
+        'table_queries_full.html',
         columns=columns,
         ds_table=ds_table,
         field_names=field_names,
@@ -539,7 +603,6 @@ def table_content(table):
         page=page_number,
         previous_page=previous_page,
         query=query,
-        table=table,
         total_pages=total_pages,
         total_rows=total_rows,
         search=search,
@@ -573,6 +636,11 @@ def value_filter(value, max_length=50):
                         value[:max_length],
                         value)
     return value
+
+@app.template_filter('column_filter')
+def column_filter(columns):
+    return [column for column in columns if column in ["id", "domain", "timestamp", "client", "realIP"]]
+    #return columns
 
 column_re = re.compile('(.+?)\((.+)\)', re.S)
 column_split_re = re.compile(r'(?:[^,(]|\([^)]*\))+')

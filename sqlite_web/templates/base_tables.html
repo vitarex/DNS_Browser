@@ -1,16 +1,18 @@
 {% extends "base.html" %}
 
-{% block sidebar %}
-  <ul class="nav flex-column nav-pills" role="tablist">
-    <li class="nav-item table-link">
-      <a class="nav-link active" href="{{ url_for('table_domains', table='queries') }}">
-        Adatbázis
-      </a>
-    </li>
-    <li class="nav-item table-link">
-      <a class="nav-link active" href="{{ url_for('upload_page') }}">
-        Feltöltés
-      </a>
-    </li>
-  </ul>
+{% block header_nav %}
+  <div class="row clearfix">
+    <div class="clearfix col-12">
+      <div class="col-2 float-left">
+        <a href="{% block header_nav_back %}{% endblock %}" class="btn btn-primary my-auto" style="font-size:x-large;">
+            &lsaquo; Vissza
+        </a>
+      </div>
+      <div class="col-2 float-right">
+        <a href="{% block header_nav_forward %}{% endblock %}" class="btn btn-primary my-auto fwd-nav-btn" style="font-size:x-large;">
+          Tovább &rsaquo;
+        </a>
+      </div>
+    </div>
+  </div>
 {% endblock %}

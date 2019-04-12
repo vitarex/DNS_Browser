@@ -1,8 +1,10 @@
 {% extends "base_tables.html" %}
+{% block nav_upload_active %} active{% endblock %}
 
 {% block extra_scripts %}
     <script type="text/javascript">
         $(function() {
+            $('.fwd-nav-btn').addClass('disabled')
             $('.btn-primary').on('click', function(e) {
                 $.ajax({
                     type: 'GET',
@@ -68,6 +70,9 @@
             $(selector).removeClass('text-primary active-section').addClass('text-success')
             $(selector + ' > .indicator').addClass('d-none')
             $(selector + " > .textvalue > .dynamic").html('<i class="ficon far fa-check-circle"></i>')
+            if (subject == "upload") {
+                $('.fwd-nav-btn').removeClass('disabled')
+            }
         }
         function upload_progress(progress_data) {
             console.log(progress_data)
@@ -88,11 +93,18 @@
 {% endblock %}
 
 {% block content_title %}
-    <h1>Feltöltés</h1>
+Feltöltés
+{% endblock %}
+{% block content_desc %}
+A feltöltés gombra kattintva véglegesítheti az adatgyűjtést. A feltöltés után <b>semmilyen változtatásra nincs lehetőség</b>.<br>
+A feltöltés befejezése után kattintson a tovább gombra.
 {% endblock %}
 
+{% block header_nav_back %}{{ url_for('table_domains') }}{% endblock %}
+{% block header_nav_forward %}{{ url_for('upload_page') }}{% endblock %}
+
 {% block content %}
-    <button class="btn btn-primary" class="upload_button" name="upload_database">Felöltés</button>
+    <button class="btn btn-primary" class="upload_button" name="upload_database">Feltöltés</button>
     <div>
         <p class="compress-bundle text-secondary">
             <span class="textvalue">1. Tömörítés<span class="dynamic"></span></span>
