@@ -9,3 +9,10 @@ h1>small {font-size: 50%;}
 .ficon {margin-left: 5px;}
 .error-span {margin-left: 10px}
 .btn {margin: 3px;}
+.upload-card {
+  padding: 1rem 2.5rem 0rem 2.5rem;
+  font-size: 1.25rem;
+}
+.spinner-border {
+  vertical-align: baseline;
+}

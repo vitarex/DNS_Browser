@@ -78,7 +78,7 @@ ROWS_PER_PAGE = 50
 SECRET_KEY = 'sqlite-database-browser-0.1.0'
 
 # Adatgyűjtés konstansok
-DATABASE_PATH = "D:\\sqlite-web\\sqlite-web\\privadome.db"
+DATABASE_PATH = "D:\\sqlite-web\\sqlite-web\\a.a"
 ZIPPED_DB_NAME = "zipped_db.zip"
 SAS_URL = "https://adatgyujtes.azurewebsites.net/api/adatgyujtesSAS"
 ADATGYUJTES_ID = "tesztID"

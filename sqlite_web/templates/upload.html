@@ -105,28 +105,41 @@ A feltöltés befejezése után kattintson a tovább gombra.
 {% block header_nav_forward %}{{ url_for('thanks') }}{% endblock %}
 
 {% block content %}
-    <button class="btn btn-primary upload-button">Feltöltés</button>
-    <div>
-        <p class="compress-bundle text-secondary">
-            <span class="textvalue">1. Tömörítés<span class="dynamic"></span></span>
-            <span class="indicator spinner-border spinner-border-sm d-none" role="status"></span>
-            <span class="error-span d-none">Hiba történt: <span class="dynamic"></span></span>
-        </p>
+    <div class="row justify-content-center">
+        <div class="col-4">
+            <button style="font-size: x-large;" class="btn btn-block btn-primary upload-button">
+                Feltöltés
+            </button>
+        </div>
     </div>
-    <div>
-        <p class="authenticate-bundle text-secondary">
-            <span class="textvalue">2. Hitelesítés<span class="dynamic"></span></span>
-            <span class="indicator spinner-border spinner-border-sm d-none" role="status"></span>
-            <span class="error-span d-none">Hiba történt: <span class="dynamic"></span></span>
-        </p>
-    </div>
-    <div>
-        <p class="upload-bundle text-secondary">
-            <span class="textvalue">3. Titkosítás és feltöltés<span class="dynamic"></span></span>
-            <span class="indicator progress d-none" style="width: 50%; margin: 10px 0 10px 40px;">
-                    <span class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></span>
-                </span>
-            <span class="error-span d-none">Hiba történt: <span class="dynamic"></span></span>
-        </p>
+    <div class="row justify-content-center">
+        <div class="col"></div>
+        <div class="col-auto card card-body upload-card">
+            <div>
+                <p class="compress-bundle text-secondary">
+                    <span class="textvalue">1. Tömörítés<span class="dynamic"></span></span>
+                    <span class="indicator spinner-border spinner-border-sm d-none" role="status"></span>
+                    <span class="error-span d-none">Hiba történt: <span class="dynamic"></span></span>
+                </p>
+            </div>
+            <div>
+                <p class="authenticate-bundle text-secondary">
+                    <span class="textvalue">2. Hitelesítés<span class="dynamic"></span></span>
+                    <span class="indicator spinner-border spinner-border-sm d-none" role="status"></span>
+                    <span class="error-span d-none">Hiba történt: <span class="dynamic"></span></span>
+                </p>
+            </div>
+            <div>
+                <p class="upload-bundle text-secondary">
+                    <span class="textvalue">3. Titkosítás és feltöltés<span class="dynamic"></span></span>
+                    <span class="indicator progress d-none" style="margin-top:0.5rem;">
+                        <span class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></span>
+                    </span>
+                    <span class="error-span d-none">Hiba történt: <span class="dynamic"></span></span>
+                </p>
+            </div>
+        </div>
+        <div class="col"></div>
     </div>
 {% endblock %}
+        
