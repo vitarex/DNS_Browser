@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block page_header %}
+<div class="page-header text-center">
+  <h1>Adatgyűjtés felület</h1>
+</div>
+{% endblock %}
+
+{% block logout %}{% endblock %}
+
+{% block content %}
+<div class="col-6 offset-3">
+    <form action="{{ url_for('login') }}" class="form" method="post">
+      <div class="form-group">
+        <input class="form-control" id="id_password" name="password" type="password" value="" placeholder="Jelszó" style="font-size:xx-large;" />
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">
+        <span style="font-size:xx-large;">Bejelentkezés</span>
+      </button>
+    </form>
+</div>
+{% endblock %}

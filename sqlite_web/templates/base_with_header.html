@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block page_header %}
+<div class="page-header">
+    <h1>{% block content_title %}{% endblock %}</h1>
+    <p>{% block content_desc %}{% endblock %}</p>
+    {% block header_nav %}{% endblock %}
+</div>
+{% endblock %}
