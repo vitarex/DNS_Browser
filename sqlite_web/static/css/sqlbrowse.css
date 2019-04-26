@@ -5,7 +5,6 @@ div.page-header {
 }
 #sidebar .nav>li>a {padding: 3px 10px;}
 h1>small {font-size: 50%;}
-.container {margin-left: 150px;}
 .ficon {margin-left: 5px;}
 .error-span {margin-left: 10px}
 .btn {margin: 3px;}
@@ -15,4 +14,28 @@ h1>small {font-size: 50%;}
 }
 .spinner-border {
   vertical-align: baseline;
+}
+.main-container {
+  padding-bottom: 50px;
+}
+.wrap {
+  overflow: auto;
+  min-height: 100%;
+}
+.footer {
+  position: relative;
+  margin-top: -57px;
+  height: 57px;
+  clear: both;
+  padding-top: 1rem;
+}
+body, html {
+  height: 100%;
+}
+hr {
+  margin-top: -1rem;
+  margin-bottom: 0.5rem;
+}
+.table-cell {
+  white-space: nowrap;
 }

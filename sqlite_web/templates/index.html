@@ -32,25 +32,58 @@
   </head>
 
   <body class="{% block body_class %}{% endblock %}">
-    <div class="container">
-      <div class="page-header text-center">
-        <h1>Adatgyűjtés felület</h1>
-      </div>
-      <div class="row">
-        <div class="col-6 offset-3">
-          <a href="{{ url_for('table_domains') }}" class="btn btn-primary btn-block">
-            <span style="font-size:xx-large;">Feltöltés</span>
-          </a>
+    <div class="wrap">
+      <div class="container main-container">
+        <div class="page-header text-center">
+          <h1>Adatgyűjtés felület</h1>
         </div>
-      </div>
-    </br>
-      <div class="row">
-        <div class="col-6 offset-3">
-          <a href="{{ url_for('table_full') }}" class="btn btn-secondary btn-block">
-            <span style="font-size:xx-large;">Jelenlegi adatbázis megtekintése</span>
-          </a>
+        <div class="row">
+          <div class="col-6 offset-3">
+            <a href="{{ url_for('table_domains') }}" class="btn btn-primary btn-block">
+              <span style="font-size:xx-large;">Feltöltés</span>
+            </a>
+          </div>
+        </div>
+      </br>
+        <div class="row">
+          <div class="col-6 offset-3">
+            <a href="{{ url_for('table_full') }}" class="btn btn-secondary btn-block">
+              <span style="font-size:xx-large;">Jelenlegi adatbázis megtekintése</span>
+            </a>
+          </div>
+        </div>
+      </br>
+        <div class="row">
+          <div class="col-6 offset-3">
+            <a href="{{ url_for('faq') }}" class="btn btn-secondary btn-block">
+              <span style="font-size:xx-large;">Gyakran ismételt kérdések</span>
+            </a>
+          </div>
         </div>
       </div>
     </div>
+    <footer class="footer" style="z-index: 1030;">
+      <div class="container">
+        <hr />
+        <div class="row">
+          <div class="col-auto text-muted mr-auto">
+            <span class="nav-link">Hálózati adatgyűjtési kutatás &copy; 2019 Budapesti Műszaki és Gazdaságtudományi Egyetem</span>
+          </div>
+          <div class="col-auto text-muted">
+              <ul class="nav">
+                <li class="nav-item">
+                  <a class="nav-link" href="{{ url_for('faq') }}">GY.I.K.</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="http://privadome.eu">PrivaDome</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="https://www.bme.hu/">BME</a>
+                </li>
+              </ul>
+          </div>
+        </div>
+      </div>
+    </footer>
   </body>
 </html>

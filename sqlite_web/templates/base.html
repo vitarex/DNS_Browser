@@ -34,41 +34,57 @@
   </head>
 
   <body class="{% block body_class %}{% endblock %}">
-    <div class="container">
-      {% block page_header %}
-      <div class="page-header">
-        <h1>{% block content_title %}{% endblock %}</h1>
-        <p>{% block content_desc %}{% endblock %}</p>
-        {% block header_nav %}{% endblock %}
-      </div>
-      {% endblock %}
-      <div class="row">
-        <!-- <div class="col-3" id="sidebar">
-          {% block sidebar %}{% endblock %}
-          {% block logout %}{% if login_required %}<a href="{{ url_for('logout') }}">Log-out</a>{% endif %}{% endblock %}
-        </div> -->
-        <div class="col-12" id="content">
-          {% for category, message in get_flashed_messages(with_categories=true) %}
-            <div class="alert alert-{{ category }} alert-dismissable">
-              <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-              <p>{{ message }}</p>
-            </div>
-          {% endfor %}
-          {% block content %}{% endblock %}
+    <div class="wrap">
+      <div class="container main-container">
+        {% block page_header %}
+        <div class="page-header">
+          <h1>{% block content_title %}{% endblock %}</h1>
+          <p>{% block content_desc %}{% endblock %}</p>
+          {% block header_nav %}{% endblock %}
         </div>
-      </div>
-      <div class="row">
-        <div class="col-12">
-          <footer>
-            <hr />
-            <p>
-              Web-based SQLite database browser, powered by
-              <a href="http://flask.pocoo.org/">Flask</a> and <a href="http://docs.peewee-orm.com/">Peewee</a>.
-              &copy; {{ now.year }} <a href="http://charlesleifer.com/">Charles Leifer</a>
-            </p>
-          </footer>
+        {% endblock %}
+        <div class="row">
+          <!-- <div class="col-3" id="sidebar">
+            {% block sidebar %}{% endblock %}
+            {% block logout %}{% if login_required %}<a href="{{ url_for('logout') }}">Log-out</a>{% endif %}{% endblock %}
+          </div> -->
+          <div class="col-12" id="content">
+            {% for category, message in get_flashed_messages(with_categories=true) %}
+              <div class="alert alert-{{ category }} alert-dismissable">
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                <p>{{ message }}</p>
+              </div>
+            {% endfor %}
+            {% block content %}{% endblock %}
+          </div>
         </div>
       </div>
     </div>
+    <footer class="footer" style="z-index: 1030;">
+        <div class="container">
+          <hr />
+          <div class="row">
+            <div class="col-auto text-muted mr-auto">
+              <span class="nav-link">Hálózati adatgyűjtési kutatás &copy; 2019 Budapesti Műszaki és Gazdaságtudományi Egyetem</span>
+            </div>
+            <div class="col-auto text-muted">
+                <ul class="nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('index') }}">Kezdőoldal</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('faq') }}">GY.I.K.</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="http://privadome.eu">PrivaDome</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="https://www.bme.hu/">BME</a>
+                  </li>
+                </ul>
+            </div>
+          </div>
+        </div>
+      </footer>
   </body>
 </html>

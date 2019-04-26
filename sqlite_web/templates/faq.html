@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block content_title %}
+Gyakran Ismételt Kérdések
+{% endblock %}
+{% block content %}
+    <div class="col-9 offset-1">
+      <div class="accordion" id="accordionFaq">
+        <div class="card">
+          <div class="card-header" id="headingOne">
+            <h2 class="mb-0">
+              <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseOne"
+                aria-expanded="true" aria-controls="collapseOne">
+                1.	Mi az a tartománynév feloldás?
+              </button>
+            </h2>
+          </div>
+      
+          <div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordionFaq">
+            <div class="card-body">
+              A tartománynév feloldó rendszer (DNS) segítségével olyan könnyen megjegyezhető és értelmezhető szöveges azonosítókat, mint például a www.bme.hu, olyan, számítógépek számára is használható digitális azonosítóvá változik, mint a <i>152.66.115.203</i>. Míg a <i>www.bme.hu</i> egy tartománynév (másnéven domain), addig a <i>152.66.115.203</i> egy IP cím. A kettő közötti leképezést biztosítja a tartománynév feloldó rendszer. 
+            </div>
+          </div>
+        </div>
+      
+        
+        <div class="card">
+          <div class="card-header" id="headingTwo">
+            <h2 class="mb-0">
+              <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseTwo"
+                aria-expanded="true" aria-controls="collapseTwo">
+                2.	Miért pont ezek az adatok kerülnek gyűjtésre?
+              </button>
+            </h2>
+          </div>
+      
+          <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionFaq">
+            <div class="card-body">
+              Az internetes kommunikációk túlnyomó többségét megelőzi egy tartománynév feloldási folyamat. Ebből kifolyólag a tartománynév feloldás során generált adatok részletes képet alkothatnak egy hálózat kommunikációs szokásairól.
+            </div>
+          </div>
+        </div>
+      
+      
+        <div class="card">
+          <div class="card-header" id="headingThree">
+            <h2 class="mb-0">
+              <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseThree"
+                aria-expanded="true" aria-controls="collapseThree">
+                3.	Pontosan milyen adatokat gyűjt a rendszer?
+              </button>
+            </h2>
+          </div>
+      
+          <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordionFaq">
+            <div class="card-body">
+              A rendszer elsősorban a tartománynév feloldás során keletkező adatokat rögzíti. Ki kezdeményezte a lekérést, mi volt a lekérés eredménye, időpontja.
+            </div>
+          </div>
+        </div>
+      
+      
+        <div class="card">
+          <div class="card-header" id="headingFour">
+            <h2 class="mb-0">
+              <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseFour"
+                aria-expanded="true" aria-controls="collapseFour">
+                4.	Mi történik az adataimmal a feltöltés alatt?
+              </button>
+            </h2>
+          </div>
+      
+          <div id="collapseFour" class="collapse" aria-labelledby="headingFour" data-parent="#accordionFaq">
+            <div class="card-body">
+              Az adatbázisban tárolt adatokat először tömörítjük, hogy kisebb méretű fájlokkal dolgozzunk. Ezzel jelentősen meggyorsítjuk a feltöltést. A tömörítés után az adatgyűjtő eszközt azonosítjuk és hitelesítjük. Ha ez sikeres, akkor a teljes adatbázist titkosítjuk, majd feltöltjük egy felhő alapú tárhelybe.
+            </div>
+          </div>
+        </div>
+      
+      
+        <div class="card">
+          <div class="card-header" id="headingFive">
+            <h2 class="mb-0">
+              <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseFive"
+                aria-expanded="true" aria-controls="collapseFive">
+                5.	Hogyan kerülnek titkosításra az adatok?
+              </button>
+            </h2>
+          </div>
+      
+          <div id="collapseFive" class="collapse" aria-labelledby="headingFive" data-parent="#accordionFaq">
+            <div class="card-body">
+              A titkosítást egy két szintű algoritmus végzi. A közvetlen titkosítás AES-t használ CBC módban, az ehhez használt 256 bites kulcsot pedig egy 2048 bites RSA kulccsal titkosítjuk. A felhő szolgáltató sosem birtokolja ezt a második kulcsot, így biztosítva azt, hogy csak az engedéllyel rendelkező személyek férhetnek hozzá az adatokhoz.
+            </div>
+          </div>
+        </div>
+      
+      
+        <div class="card">
+          <div class="card-header" id="headingSix">
+            <h2 class="mb-0">
+              <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseSix"
+                aria-expanded="true" aria-controls="collapseSix">
+                6.	Mi történik az adataimmal a feltöltés után?
+              </button>
+            </h2>
+          </div>
+      
+          <div id="collapseSix" class="collapse" aria-labelledby="headingSix" data-parent="#accordionFaq">
+            <div class="card-body">
+              Feltöltés után az adatok készen állnak a feldolgozásra. Ennek során különböző statisztikai és gépi tanulási módszerek segítségével vizsgálatokat végzünk...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+{% endblock %}

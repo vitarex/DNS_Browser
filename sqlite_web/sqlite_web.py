@@ -78,7 +78,7 @@ ROWS_PER_PAGE = 50
 SECRET_KEY = 'sqlite-database-browser-0.1.0'
 
 # Adatgyűjtés konstansok
-DATABASE_PATH = "D:\\sqlite-web\\sqlite-web\\a.a"
+DATABASE_PATH = "D:\\sqlite-web\\sqlite-web\\privadome.db"
 ZIPPED_DB_NAME = "zipped_db.zip"
 SAS_URL = "https://adatgyujtes.azurewebsites.net/api/adatgyujtesSAS"
 ADATGYUJTES_ID = "tesztID"
@@ -199,6 +199,10 @@ def index():
 @app.route('/thanks/')
 def thanks():
     return render_template('thanks.html')
+
+@app.route('/faq/')
+def faq():
+    return render_template('faq.html')
 
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
@@ -623,7 +627,11 @@ def format_index(index_sql):
     return '\nON '.join((create.strip(), definition.strip()))
 
 @app.template_filter('value_filter')
-def value_filter(value, max_length=50):
+def value_filter(value, max_length=50, field=None):
+    if field is not None:
+        if field == "timestamp":
+            return datetime.datetime.fromtimestamp(value)
+
     if isinstance(value, numeric):
         return value
 
@@ -641,10 +649,15 @@ def value_filter(value, max_length=50):
                         value)
     return value
 
+@app.template_filter('column_filter_display')
+def column_filter_display(column):
+    nameDict = {"id":"ID", "timestamp":"Időbélyeg", "domain":"Domain", "client":"Kliens", "realIP":"Feloldott IP"}
+    return nameDict[column]
+
 @app.template_filter('column_filter')
 def column_filter(columns):
-    return [column for column in columns if column in ["id", "domain", "timestamp", "client", "realIP"]]
-    #return columns
+    newColumns =  [column for column in columns if column in ["id", "domain", "timestamp", "client", "realIP"]]
+    return newColumns
 
 column_re = re.compile('(.+?)\((.+)\)', re.S)
 column_split_re = re.compile(r'(?:[^,(]|\([^)]*\))+')
