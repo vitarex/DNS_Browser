@@ -804,7 +804,7 @@ def install_auth_handler(password):
     def check_password():
         if not session.get('authorized') and request.path != '/login/' and \
            not request.path.startswith(('/static/', '/favicon')):
-            flash('You must log-in to view the database browser.', 'danger')
+            flash('Az adatbázis csak bejelentkezés után tekinthető meg.', 'danger')
             session['next_url'] = request.base_url
             return redirect(url_for('login'))
 
