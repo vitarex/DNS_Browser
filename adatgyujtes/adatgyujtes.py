@@ -395,7 +395,7 @@ def upload_task():
             "subject": "authenticate"
         })
         credentials = get_azure_credentials()
-        if all(s in credentials for s in ('accountName', 'sasToken', 'containerName', 'id')):
+        if all(s in credentials for s in ('accountName', 'sasToken', 'containerName', 'id', 'rsaPublicKey')):
             # Initialize the Azure blob service
             print("Initializing Azure blob service...", file=sys.stderr)
             blobService = init_blob_service(credentials=credentials)
