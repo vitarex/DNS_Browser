@@ -72,7 +72,7 @@ from playhouse.migrate import migrate
 
 
 CUR_DIR = os.path.realpath(os.path.dirname(__file__))
-DEBUG = True
+DEBUG = False
 MAX_RESULT_SIZE = 1000
 ROWS_PER_PAGE = 50
 SECRET_KEY = 'sqlite-database-browser-0.1.0'
@@ -210,7 +210,7 @@ def login():
         if request.form.get('password') == app.config['PASSWORD']:
             session['authorized'] = True
             return redirect(session.get('next_url') or url_for('index'))
-        flash('The password you entered is incorrect.', 'danger')
+        flash('A megadott jelszó helytelen.', 'danger')
     return render_template('login.html')
 
 @app.route('/logout/', methods=['GET'])
@@ -311,13 +311,10 @@ def upload_page():
 
 import threading
 import requests
-import collections
 import queue
 import encryption
 import zipfile
 from event import QueueEvent
-
-progress_deque = collections.deque([],1)
 
 progress_queue = queue.Queue()
 
@@ -370,8 +367,8 @@ def init_blob_service(credentials):
     # This would be an unnecessary overhead since we only have the one public key, but there's no way around it
     blobService.key_encryption_key, blobService.key_resolver_function = init_key_resolver(credentials=credentials)
     # Change the upload parameters, so that the progress callback gets called more frequently, this might also raise the robustness of the upload
-    blobService.MAX_SINGLE_PUT_SIZE = 1024*1024
-    blobService.MAX_BLOCK_SIZE = 1024*1024
+    blobService.MAX_SINGLE_PUT_SIZE = 4*1024*1024
+    blobService.MAX_BLOCK_SIZE = 4*1024*1024
     return blobService
 
 def upload_task():
@@ -481,10 +478,10 @@ def upload_progress():
                     print("Yielding: {}".format(progress_data.message()), file=sys.stderr)
                     # Send the progress to the client
                     yield progress_data.message()
-                    if ("error" in progress_data.message() or 'type": "completed", "subject": "upload"' in progress_data.message()):
+                    if ("error" in progress_data.message() or '"type": "completed", "subject": "upload"' in progress_data.message()):
                         stream_active = False
             except Exception as ex:
-                print("Event stream encountered an error.", file=sys.stderr)
+                print("Event stream encountered an error." + str(ex), file=sys.stderr)
                 stream_active = False
         return Response(upload_event_stream(), mimetype='text/event-stream')
     except Exception as ex:

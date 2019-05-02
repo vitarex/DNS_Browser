@@ -1,7 +1,17 @@
 {% extends "base.html" %}
 
-{% block content_title %}
-Gyakran Ismételt Kérdések
+{% block extra_head %}
+<style>
+  #footer-id {
+    margin-top: -47px;
+  }
+</style>
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header text-center">
+  <h1>Gyakran Ismételt Kérdések</h1>
+</div>
 {% endblock %}
 {% block content %}
     <div class="col-9 offset-1">
