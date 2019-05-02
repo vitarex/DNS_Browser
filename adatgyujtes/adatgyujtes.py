@@ -77,11 +77,9 @@ MAX_RESULT_SIZE = 1000
 ROWS_PER_PAGE = 50
 SECRET_KEY = 'sqlite-database-browser-0.1.0'
 
-# Adatgyűjtés konstansok
-DATABASE_PATH = "D:\\sqlite-web\\sqlite-web\\privadome.db"
-ZIPPED_DB_NAME = "zipped_db.zip"
-SAS_URL = "https://adatgyujtes.azurewebsites.net/api/adatgyujtesSAS"
-ADATGYUJTES_ID = "tesztID"
+import config
+
+ADATGYUJTES_CONFIG = config.CONFIG_TEST
 
 app = Flask(
     __name__,
@@ -341,7 +339,7 @@ def progress_callback(current, total):
 def get_azure_credentials():
     """Get the Azure credentials for the storage account"""
     # Get the credentials from the Azure API endpoint
-    credentials = requests.post(url=SAS_URL, json={"id": ADATGYUJTES_ID}).json()
+    credentials = requests.post(url=ADATGYUJTES_CONFIG["SAS_URL"], json={"id": ADATGYUJTES_CONFIG["ADATGYUJTES_ID"]}).json()
     # In case of a server error the API responds with a JSON with an error field in it
     if "error" in credentials:
         raise Exception("Nem tudtuk hitelesíteni az eszközt: " + credentials["error"])
@@ -349,8 +347,8 @@ def get_azure_credentials():
 
 def zip_database():
     """Zip up the database"""
-    with zipfile.ZipFile(ZIPPED_DB_NAME, 'w', zipfile.ZIP_DEFLATED) as dbzip:
-        dbzip.write(DATABASE_PATH)
+    with zipfile.ZipFile(ADATGYUJTES_CONFIG["ZIPPED_DB_NAME"], 'w', zipfile.ZIP_DEFLATED) as dbzip:
+        dbzip.write(ADATGYUJTES_CONFIG["DATABASE_PATH"])
 
 def init_key_resolver(credentials):
     """Load the key resolver from the received credentials"""
@@ -411,7 +409,7 @@ def upload_task():
             blobService.create_blob_from_path(
                 container_name=credentials["containerName"],
                 blob_name=credentials["id"]+ "_" + str(datetime.datetime.utcnow().isoformat()) + ".zip",
-                file_path=ZIPPED_DB_NAME,
+                file_path=ADATGYUJTES_CONFIG["ZIPPED_DB_NAME"],
                 progress_callback=progress_callback,
                 timeout=200)
             queue_event_data({
@@ -843,16 +841,8 @@ def main():
 
     password = None
     if options.prompt_password:
-        if os.environ.get('SQLITE_WEB_PASSWORD'):
-            password = os.environ['SQLITE_WEB_PASSWORD']
-        else:
-            while True:
-                password = getpass('Enter password: ')
-                password_confirm = getpass('Confirm password: ')
-                if password != password_confirm:
-                    print('Passwords did not match!')
-                else:
-                    break
+        password = ADATGYUJTES_CONFIG["PASSWORD"]
+        print(password)
 
     # Initialize the dataset instance and (optionally) authentication handler.
     initialize_app(args[0], options.read_only, password, options.url_prefix)
