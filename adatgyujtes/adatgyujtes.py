@@ -233,6 +233,10 @@ def get_request_data():
         return request.form
     return request.args
 
+@app.route('/stop_collecting/')
+def stop_collecting():
+    return render_template('stop_collecting.html')
+
 @app.route('/copy/')
 def create_copy_queries():
     global dataset
@@ -649,10 +653,15 @@ def table_full():
 @app.route('/delete_databases/')
 def delete_databases():
     path =  ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"]
+    origin_path = path =  ADATGYUJTES_CONFIG["DATABASE_PATH"]
     if os.path.exists(path):
-        os.remove(path)
+        if not dataset._database.is_closed():
+            dataset.close()
+        os.remove(path) #TODO
     else:
         print("The file does not exist at location: ", path)
+    return redirect(url_for('thanks'), code=302)
+
 
 
 @app.template_filter('format_index')
