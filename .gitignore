@@ -1,2 +1,4 @@
 adatgyujtes/*.zip
 adatgyujtes/*.7z
+.vscode/settings.json
+*.pyc
