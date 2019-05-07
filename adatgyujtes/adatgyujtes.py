@@ -367,7 +367,10 @@ def zip_database():
 def init_key_resolver(credentials):
     """Load the key resolver from the received credentials"""
     # The encode method must be called on the key, since it is a string and we need bytes here
-    kek = encryption.PublicRSAKeyWrapper(public_key=credentials["rsaPublicKey"].encode())
+    key = credentials["rsaPublicKey"].replace(r'\n','\n').encode()
+    print("KEY is: ", key)
+    kek = encryption.PublicRSAKeyWrapper(public_key=key)
+
     key_resolver = encryption.KeyResolver()
     key_resolver.put_key(key=kek)
     return kek, key_resolver.resolve_key
@@ -472,7 +475,6 @@ def upload_database():
     except Exception as ex:
         print(ex, file=sys.stderr)
         return json.dumps({'success':False, 'error_message': str(ex)}), 409, {'ContentType':'application/json'}
-
 
 @app.route('/upload_progress/')
 def upload_progress():
@@ -643,6 +645,14 @@ def table_full():
         total_rows=total_rows,
         search=search,
         true_content=True)
+
+@app.route('/delete_databases/')
+def delete_databases():
+    path =  ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"]
+    if os.path.exists(path):
+        os.remove(path)
+    else:
+        print("The file does not exist at location: ", path)
 
 
 @app.template_filter('format_index')
