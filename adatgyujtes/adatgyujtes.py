@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
 import datetime
+import json
 import math
 import operator
 import optparse
 import os
 import re
+import shutil
 import sys
 import threading
 import time
@@ -87,6 +89,7 @@ app = Flask(
     template_folder=os.path.join(CUR_DIR, 'templates'))
 app.config.from_object(__name__)
 dataset = None
+live_dataset = None
 migrator = None
 
 #
@@ -229,6 +232,13 @@ def get_request_data():
         return request.form
     return request.args
 
+@app.route('/copy/')
+def create_copy_queries():
+    global dataset
+    shutil.copy(DATABASE_PATH, ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"])
+    dataset = SqliteDataSet('sqlite:///{path}'.format(path=ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"]), bare_fields=True)
+    return redirect(url_for('table_domains'), code=302)
+
 @app.route('/domains/')
 def table_domains():
     table = "queries"
@@ -244,6 +254,11 @@ def table_domains():
     dom_field = None
     if ('domain' in ds_table.model_class._meta.fields):
         dom_field = ds_table.model_class._meta.fields['domain']
+
+    delete_domain = request.args.get('delete')
+    if delete_domain:
+        ds_table.delete(domain=delete_domain)
+        open_live_dataset_table(table).delete(domain=delete_domain)
 
     search = request.args.get('search')
     if search:
@@ -262,9 +277,7 @@ def table_domains():
     previous_page = page_number - 1 if page_number > 1 else None
     next_page = page_number + 1 if page_number < total_pages else None
 
-    delete_domain = request.args.get('delete')
-    if delete_domain:
-        ds_table.delete(domain=delete_domain)
+
 
     query = query.paginate(page_number, rows_per_page)
 
@@ -447,8 +460,6 @@ def start_upload():
         print(ae, file=sys.stderr)
         raise ae
 
-import json
-
 @app.route('/upload_database/')
 def upload_database():
     """Simple endpoint that starts the upload in a separate thread."""
@@ -487,6 +498,12 @@ def upload_progress():
         return str(ex), 500, {'ContentType':'application/json'}
 
 
+def open_live_dataset_table(table):
+    # Opening live dataset for delete to remain persistent
+    live_dataset.connect()
+    live_dataset.update_cache(table)
+    return live_dataset[table]
+
 @app.route('/queries/')
 def table_queries():
     table="queries"
@@ -498,6 +515,11 @@ def table_queries():
     ds_table = dataset[table]
 
     rows_per_page = app.config['ROWS_PER_PAGE']
+
+    delete_index = request.args.get('delete')
+    if delete_index:
+        ds_table.delete(id=delete_index)
+        open_live_dataset_table(table).delete(id=delete_index)
 
     search = request.args.get('search')
     if search:
@@ -514,9 +536,7 @@ def table_queries():
     previous_page = page_number - 1 if page_number > 1 else None
     next_page = page_number + 1 if page_number < total_pages else None
 
-    delete_index = request.args.get('delete')
-    if delete_index:
-        ds_table.delete(id=delete_index)
+    
 
     query = query.paginate(page_number, rows_per_page)
 
@@ -551,6 +571,8 @@ def table_queries():
 
 @app.route('/full/')
 def table_full():
+    live_dataset.connect()
+    dataset = live_dataset # Doesnt override global instance, variable is local.
     table = "queries"
 
     page_number = request.args.get('page') or ''
@@ -711,6 +733,8 @@ def _connect_db():
 def _close_db(exc):
     if not dataset._database.is_closed():
         dataset.close()
+    if not live_dataset._database.is_closed():
+        live_dataset.close()
 
 
 class PrefixMiddleware(object):
@@ -803,49 +827,52 @@ def install_auth_handler(password):
             session['next_url'] = request.base_url
             return redirect(url_for('login'))
 
-def initialize_app(filename, read_only=False, password=None, url_prefix=None):
+# Getting privadome.db location if it uses same interpreter as this script
+PYTHON_DIR_PATH = os.path.dirname(sys.executable)
+DATABASE_PATH = os.path.join(PYTHON_DIR_PATH, "Lib", "site-packages", "privadome", "database", "privadome.db")
+print("PRIVADOME DB_PATH - : ", DATABASE_PATH)
+#app.config["DATABASE_PATH"] = DATABASE_PATH # TODO merge 2 rows
+COPIED_DATABASE_PATH = "copy.db"
+#config.set('TEST', 'DATABASE_PATH', DATABASE_PATH)
+#config.set('TEST', 'COPIED_DATABASE_PATH', COPIED_DATABASE_PATH)
+
+def initialize_app(password=None, url_prefix=None):
     global dataset
+    global live_dataset
     global migrator
 
     if password:
         install_auth_handler(password)
-
-    if read_only:
-        if sys.version_info < (3, 4, 0):
-            die('Python 3.4.0 or newer is required for read-only access.')
-        if peewee_version < (3, 5, 1):
-            die('Peewee 3.5.1 or newer is required for read-only access.')
-        db = SqliteDatabase('file:%s?mode=ro' % filename, uri=True)
-        try:
-            db.connect()
-        except OperationalError:
-            die('Unable to open database file in read-only mode. Ensure that '
-                'the database exists in order to use read-only mode.')
-        db.close()
-        dataset = SqliteDataSet(db, bare_fields=True)
-    else:
-        dataset = SqliteDataSet('sqlite:///%s' % filename, bare_fields=True)
+    print("OK2")
+    try:
+        print("Copydb: ", ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"])
+        shutil.copy(DATABASE_PATH, ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"])
+        dataset = SqliteDataSet('sqlite:///{path}'.format(path=ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"]), bare_fields=True)
+        live_dataset = SqliteDataSet('sqlite:///{path}'.format(path=ADATGYUJTES_CONFIG["DATABASE_PATH"]), bare_fields=True)
+    except expression as identifier:
+        pass
+    
 
     if url_prefix:
         app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=url_prefix)
 
     migrator = dataset._migrator
     dataset.close()
+    live_dataset.close()
 
 def main():
     # This function exists to act as a console script entry-point.
     parser = get_option_parser()
     options, args = parser.parse_args()
-    if not args:
-        die('Error: missing required path to database file.')
+    #if not args:
+    #    die('Error: missing required path to database file.')
 
     password = None
     if options.prompt_password:
         password = ADATGYUJTES_CONFIG["PASSWORD"]
         print(password)
-
     # Initialize the dataset instance and (optionally) authentication handler.
-    initialize_app(args[0], options.read_only, password, options.url_prefix)
+    initialize_app(password, options.url_prefix)
 
     if options.browser:
         open_browser_tab(options.host, options.port)
