@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import datetime
+from dateutil import tz
 import json
 import math
 import operator
@@ -91,7 +92,7 @@ app.config.from_object(__name__)
 dataset = None
 live_dataset = None
 migrator = None
-
+timezone_offset = 0
 #
 # Database metadata objects.
 #
@@ -472,6 +473,7 @@ def upload_database():
         print(ex, file=sys.stderr)
         return json.dumps({'success':False, 'error_message': str(ex)}), 409, {'ContentType':'application/json'}
 
+
 @app.route('/upload_progress/')
 def upload_progress():
     """Keep the client up to date about the progress of the upload."""
@@ -496,6 +498,15 @@ def upload_progress():
     except Exception as ex:
         print(ex, file=sys.stderr)
         return str(ex), 500, {'ContentType':'application/json'}
+
+@app.route('/timezone/')
+def timezone_information():
+    global offset
+    offset = request.args.get('offset') or 0
+    offset = int(offset)
+    print("Offset is: ", offset)
+    # If the upload started successfully, notify the client about it
+    return json.dumps({'success':True}), 200, {'ContentType':'application/json'} 
 
 
 def open_live_dataset_table(table):
@@ -647,7 +658,9 @@ def format_index(index_sql):
 def value_filter(value, max_length=50, field=None):
     if field is not None:
         if field == "timestamp":
-            return datetime.datetime.fromtimestamp(value)
+            localts = value - offset*60
+            localtime = datetime.datetime.fromtimestamp(localts)
+            return localtime
 
     if isinstance(value, numeric):
         return value

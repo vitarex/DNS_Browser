@@ -2,9 +2,34 @@
 
 {% block page_header %}
 <div class="page-header text-center">
-  <h1>Adatgyűjtés felület</h1>
+  <h1>Adatgyujtés felület</h1>
 </div>
 {% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Getting offset and sending it to backend.
+var offset = new Date().getTimezoneOffset();
+console.log(offset);
+$(function() {
+                $.ajax({
+                    type: 'GET',
+                    url: '/timezone/?offset=' + offset,
+                    success: function(response){
+                        if (JSON.parse(response).success == true) console.log("Timezone is set.")
+                        else console.log("Couldn't set timezone.")
+                    },
+                    error: function(response){
+                        console.log("An error occured: " + response)
+                    }
+                })
+            
+        })
+
+</script>
+{% endblock %}
+
+
 
 {% block content %}
 <div class="row">
