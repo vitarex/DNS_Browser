@@ -240,7 +240,7 @@ def stop_collecting():
 @app.route('/copy/')
 def create_copy_queries():
     global dataset
-    shutil.copy(DATABASE_PATH, ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"])
+    shutil.copy(ADATGYUJTES_CONFIG["DATABASE_PATH"], ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"])
     dataset = SqliteDataSet('sqlite:///{path}'.format(path=ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"]), bare_fields=True)
     return redirect(url_for('table_domains'), code=302)
 
@@ -859,14 +859,12 @@ def install_auth_handler(password):
             session['next_url'] = request.base_url
             return redirect(url_for('login'))
 
+# TODO REMOVE - it is only test purpose, configure will set this
 # Getting privadome.db location if it uses same interpreter as this script
 PYTHON_DIR_PATH = os.path.dirname(sys.executable)
 DATABASE_PATH = os.path.join(PYTHON_DIR_PATH, "Lib", "site-packages", "privadome", "database", "privadome.db")
 print("PRIVADOME DB_PATH - : ", DATABASE_PATH)
-#app.config["DATABASE_PATH"] = DATABASE_PATH # TODO merge 2 rows
-COPIED_DATABASE_PATH = "copy.db"
-#config.set('TEST', 'DATABASE_PATH', DATABASE_PATH)
-#config.set('TEST', 'COPIED_DATABASE_PATH', COPIED_DATABASE_PATH)
+
 
 def initialize_app(password=None, url_prefix=None):
     global dataset
@@ -878,7 +876,7 @@ def initialize_app(password=None, url_prefix=None):
     print("OK2")
     try:
         print("Copydb: ", ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"])
-        shutil.copy(DATABASE_PATH, ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"])
+        shutil.copy(ADATGYUJTES_CONFIG["DATABASE_PATH"], ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"])
         dataset = SqliteDataSet('sqlite:///{path}'.format(path=ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"]), bare_fields=True)
         live_dataset = SqliteDataSet('sqlite:///{path}'.format(path=ADATGYUJTES_CONFIG["DATABASE_PATH"]), bare_fields=True)
     except Exception as identifier:
