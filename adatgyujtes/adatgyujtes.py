@@ -653,7 +653,7 @@ def table_full():
 @app.route('/delete_databases/')
 def delete_databases():
     path =  ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"]
-    origin_path = path =  ADATGYUJTES_CONFIG["DATABASE_PATH"]
+    origin_path = ADATGYUJTES_CONFIG["DATABASE_PATH"]
     if os.path.exists(path):
         if not dataset._database.is_closed():
             dataset.close()
@@ -881,8 +881,8 @@ def initialize_app(password=None, url_prefix=None):
         shutil.copy(DATABASE_PATH, ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"])
         dataset = SqliteDataSet('sqlite:///{path}'.format(path=ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"]), bare_fields=True)
         live_dataset = SqliteDataSet('sqlite:///{path}'.format(path=ADATGYUJTES_CONFIG["DATABASE_PATH"]), bare_fields=True)
-    except expression as identifier:
-        pass
+    except Exception as identifier:
+        print(identifier)
     
 
     if url_prefix:
