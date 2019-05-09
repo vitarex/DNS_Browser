@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block page_header %}
+<div class="page-header row">
+  <div class="col-2">
+    <a href="{{ url_for('index') }}" class="btn btn-primary btn-block">
+      <span style="font-size:x-large;">&lsaquo; Vissza</span>
+    </a>
+  </div>
+  <h1 class="col-8 text-center">{% block page_main_title %}{% endblock %}</h1>
+</div>
+{% endblock %}
