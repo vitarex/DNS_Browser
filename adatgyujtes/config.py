@@ -5,37 +5,49 @@ import string
 import requests
 import pdb
 import sys
+import nacl.pwhash
+from enum import Enum
 
 config = configparser.ConfigParser()
 config.read('config.ini')
 
-CONFIG_DEFAULT = {
-    'DATABASE_PATH': config['DEFAULT']['DATABASE_PATH'],
-    'COPIED_DATABASE_PATH': config['DEFAULT']['COPIED_DATABASE_PATH'],
-    'ZIPPED_DB_NAME': config['DEFAULT']['ZIPPED_DB_NAME'],
-    'SAS_URL': config['DEFAULT']['SAS_URL'],
-    'ADATGYUJTES_ID': config['DEFAULT']['ADATGYUJTES_ID'],
-    'PASSWORD': config['DEFAULT']['PASSWORD']
-}
+class ConfigTypes(Enum):
+    DEFAULT = 1
+    TEST = 2
 
-CONFIG_TEST = {
-    'DATABASE_PATH': config['TEST']['DATABASE_PATH'],
-    'COPIED_DATABASE_PATH': config['TEST']['COPIED_DATABASE_PATH'],
-    'ZIPPED_DB_NAME': config['TEST']['ZIPPED_DB_NAME'],
-    'SAS_URL': config['TEST']['SAS_URL'],
-    'ADATGYUJTES_ID': config['TEST']['ADATGYUJTES_ID'],
-    'PASSWORD': config['DEFAULT']['PASSWORD']
-}
+class Config:
+    def __init__(self, configType):
+        self.configType = configType
+        self.database_path = config[configType.name]['DATABASE_PATH']
+        self.copied_database_path = config[configType.name]['COPIED_DATABASE_PATH']
+        self.zipped_db_name = config[configType.name]['ZIPPED_DB_NAME']
+        self.sas_url = config[configType.name]['SAS_URL']
+        self.adatgyujtes_id = config[configType.name]['ADATGYUJTES_ID']
+        self.password = config[configType.name]['PASSWORD'].encode()
 
-def configure(credential):
+    def change_password(self, newpw):
+        newhash = hashpw(newpw)
+        self.password = newhash.encode()
+        config.set(self.configType.name, 'PASSWORD', newhash)
+        config.write(open('config.ini', 'w'))
+
+def hashpw(pw):
+    return nacl.pwhash.str(pw.encode()).decode()
+
+def init_device():
+    print("Credential: ")
+    credential = input()
+    configure(credential)
+
+def configure(credential = None):
     gen_id = random_string()
     result = requests.post(url=config['REGISTER']['REGISTER_URL'], json={"generationCredential": credential, "id": gen_id})
     if result.ok:
         if result.json()['id'] == gen_id:
             config.set('DEFAULT', 'ADATGYUJTES_ID', gen_id)
 
-            password = random_string(8)
-            config.set('DEFAULT', 'PASSWORD', password)
+            password = 'admin'
+            config.set('DEFAULT', 'PASSWORD', hashpw(password))
 
             try:
                 import privadome

@@ -82,7 +82,7 @@ SECRET_KEY = 'sqlite-database-browser-0.1.0'
 
 import config
 
-ADATGYUJTES_CONFIG = config.CONFIG_TEST
+CONFIG = config.Config(config.ConfigTypes.TEST)
 
 app = Flask(
     __name__,
@@ -206,14 +206,35 @@ def thanks():
 def faq():
     return render_template('faq.html')
 
+import nacl.pwhash
+
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        if request.form.get('password') == app.config['PASSWORD']:
+        try:
+            nacl.pwhash.verify(CONFIG.password, request.form.get('password').encode())
             session['authorized'] = True
             return redirect(session.get('next_url') or url_for('index'))
-        flash('A megadott jelszó helytelen.', 'danger')
+        except nacl.exceptions.InvalidkeyError:
+            flash('A megadott jelszó helytelen.', 'danger')
     return render_template('login.html')
+
+@app.route('/changepw/', methods=['GET', 'POST'])
+def changepw():
+    if request.method == 'POST':
+        try:
+            nacl.pwhash.verify(CONFIG.password, request.form.get('oldpassword').encode())
+            
+            if request.form.get('newpassword') != request.form.get('newpasswordc'):
+                flash('A megadott jelszavak nem egyeznek!', 'danger')
+            if len(request.form.get('newpassword')) > 16 or len(request.form.get('newpassword')) < 4 :
+                flash('A jelszó 4-16 karakter hosszúságú kell hogy legyen.', 'danger')
+            else:
+                CONFIG.change_password(request.form.get('newpassword'))
+                flash('A jelszó sikeresen megváltoztatásra került!', 'success')
+        except nacl.exceptions.InvalidkeyError:
+            flash('A megadott jelszó helytelen.', 'danger')
+    return render_template('changepw.html')
 
 @app.route('/logout/', methods=['GET'])
 def logout():
@@ -240,8 +261,8 @@ def stop_collecting():
 @app.route('/copy/')
 def create_copy_queries():
     global dataset
-    shutil.copy(DATABASE_PATH, ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"])
-    dataset = SqliteDataSet('sqlite:///{path}'.format(path=ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"]), bare_fields=True)
+    shutil.copy(DATABASE_PATH, CONFIG.copied_database_path)
+    dataset = SqliteDataSet('sqlite:///{path}'.format(path=CONFIG.copied_database_path), bare_fields=True)
     return redirect(url_for('table_domains'), code=302)
 
 @app.route('/domains/')
@@ -357,7 +378,7 @@ def progress_callback(current, total):
 def get_azure_credentials():
     """Get the Azure credentials for the storage account"""
     # Get the credentials from the Azure API endpoint
-    credentials = requests.post(url=ADATGYUJTES_CONFIG["SAS_URL"], json={"id": ADATGYUJTES_CONFIG["ADATGYUJTES_ID"]}).json()
+    credentials = requests.post(url=CONFIG.sas_url, json={"id": CONFIG.adatgyujtes_id}).json()
     # In case of a server error the API responds with a JSON with an error field in it
     if "error" in credentials:
         raise Exception("Nem tudtuk hitelesíteni az eszközt: " + credentials["error"])
@@ -365,8 +386,8 @@ def get_azure_credentials():
 
 def zip_database():
     """Zip up the database"""
-    with zipfile.ZipFile(ADATGYUJTES_CONFIG["ZIPPED_DB_NAME"], 'w', zipfile.ZIP_DEFLATED) as dbzip:
-        dbzip.write(ADATGYUJTES_CONFIG["DATABASE_PATH"])
+    with zipfile.ZipFile(CONFIG.zipped_db_name, 'w', zipfile.ZIP_DEFLATED) as dbzip:
+        dbzip.write(CONFIG.database_path)
 
 def init_key_resolver(credentials):
     """Load the key resolver from the received credentials"""
@@ -430,7 +451,7 @@ def upload_task():
             blobService.create_blob_from_path(
                 container_name=credentials["containerName"],
                 blob_name=credentials["id"]+ "_" + str(datetime.datetime.utcnow().isoformat()) + ".zip",
-                file_path=ADATGYUJTES_CONFIG["ZIPPED_DB_NAME"],
+                file_path=CONFIG.zipped_db_name,
                 progress_callback=progress_callback,
                 timeout=200)
             queue_event_data({
@@ -652,8 +673,8 @@ def table_full():
 
 @app.route('/delete_databases/')
 def delete_databases():
-    path =  ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"]
-    origin_path = path =  ADATGYUJTES_CONFIG["DATABASE_PATH"]
+    path =  CONFIG.copied_database_path
+    origin_path = path =  CONFIG.database_path
     if os.path.exists(path):
         if not dataset._database.is_closed():
             dataset.close()
@@ -750,7 +771,7 @@ def get_query_images():
 def _general():
     return {
         'dataset': dataset,
-        'login_required': bool(app.config.get('PASSWORD')),
+        'login_required': True,
     }
 
 @app.context_processor
@@ -848,40 +869,38 @@ def open_browser_tab(host, port):
     thread.daemon = True
     thread.start()
 
-def install_auth_handler(password):
-    app.config['PASSWORD'] = password
 
-    @app.before_request
-    def check_password():
-        if not session.get('authorized') and request.path != '/login/' and \
-           not request.path.startswith(('/static/', '/favicon')):
-            flash('Az adatbázis csak bejelentkezés után tekinthető meg.', 'danger')
-            session['next_url'] = request.base_url
-            return redirect(url_for('login'))
+@app.before_request
+def check_password():
+    if not session.get('authorized') and request.path != '/login/' and \
+        not request.path.startswith(('/static/', '/favicon')):
+        flash('Az adatbázis csak bejelentkezés után tekinthető meg.', 'danger')
+        session['next_url'] = request.base_url
+        return redirect(url_for('login'))
 
 # Getting privadome.db location if it uses same interpreter as this script
 PYTHON_DIR_PATH = os.path.dirname(sys.executable)
-DATABASE_PATH = os.path.join(PYTHON_DIR_PATH, "Lib", "site-packages", "privadome", "database", "privadome.db")
+#DATABASE_PATH = os.path.join(PYTHON_DIR_PATH, "Lib", "site-packages", "privadome", "database", "privadome.db")
+DATABASE_PATH = config.config["TEST"]["DATABASE_PATH"]
 print("PRIVADOME DB_PATH - : ", DATABASE_PATH)
 #app.config["DATABASE_PATH"] = DATABASE_PATH # TODO merge 2 rows
 COPIED_DATABASE_PATH = "copy.db"
 #config.set('TEST', 'DATABASE_PATH', DATABASE_PATH)
 #config.set('TEST', 'COPIED_DATABASE_PATH', COPIED_DATABASE_PATH)
 
-def initialize_app(password=None, url_prefix=None):
+def initialize_app(url_prefix=None):
     global dataset
     global live_dataset
     global migrator
 
-    if password:
-        install_auth_handler(password)
     print("OK2")
     try:
-        print("Copydb: ", ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"])
-        shutil.copy(DATABASE_PATH, ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"])
-        dataset = SqliteDataSet('sqlite:///{path}'.format(path=ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"]), bare_fields=True)
-        live_dataset = SqliteDataSet('sqlite:///{path}'.format(path=ADATGYUJTES_CONFIG["DATABASE_PATH"]), bare_fields=True)
-    except expression as identifier:
+        print("Copydb: ", CONFIG.copied_database_path)
+        shutil.copy(DATABASE_PATH, CONFIG.copied_database_path)
+        dataset = SqliteDataSet('sqlite:///{path}'.format(path=CONFIG.copied_database_path), bare_fields=True)
+        live_dataset = SqliteDataSet('sqlite:///{path}'.format(path=CONFIG.database_path), bare_fields=True)
+    except Exception as e:
+        print(e)
         pass
     
 
@@ -899,12 +918,8 @@ def main():
     #if not args:
     #    die('Error: missing required path to database file.')
 
-    password = None
-    if options.prompt_password:
-        password = ADATGYUJTES_CONFIG["PASSWORD"]
-        print(password)
-    # Initialize the dataset instance and (optionally) authentication handler.
-    initialize_app(password, options.url_prefix)
+    # Initialize the dataset instance .
+    initialize_app(options.url_prefix)
 
     if options.browser:
         open_browser_tab(options.host, options.port)
