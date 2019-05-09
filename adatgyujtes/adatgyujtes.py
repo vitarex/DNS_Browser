@@ -75,7 +75,7 @@ from playhouse.migrate import migrate
 
 
 CUR_DIR = os.path.realpath(os.path.dirname(__file__))
-DEBUG = False
+DEBUG = True
 MAX_RESULT_SIZE = 1000
 ROWS_PER_PAGE = 50
 SECRET_KEY = 'sqlite-database-browser-0.1.0'

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base_with_backbutton.html" %}
 
 {% block extra_head %}
 <style>
@@ -8,11 +8,8 @@
 </style>
 {% endblock %}
 
-{% block page_header %}
-<div class="page-header text-center">
-  <h1>Gyakran Ismételt Kérdések</h1>
-</div>
-{% endblock %}
+{% block page_main_title %}Gyakran Ismételt Kérdések{% endblock %}
+
 {% block content %}
     <div class="col-9 offset-1">
       <div class="accordion" id="accordionFaq">
