@@ -650,16 +650,35 @@ def table_full():
         search=search,
         true_content=True)
 
-@app.route('/delete_databases/')
-def delete_databases():
-    path =  ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"]
-    origin_path = ADATGYUJTES_CONFIG["DATABASE_PATH"]
+def delete_file(path):
+    print("Path for delelte: ", path)
+    print(os.path.exists(path))
     if os.path.exists(path):
         if not dataset._database.is_closed():
             dataset.close()
-        os.remove(path) #TODO
+        if not live_dataset._database.is_closed():
+            live_dataset.close()
+        os.unlink(path) 
+        # TODO remove empty file too?
+        # TODO test on linux, cause win cannot delete file, that is used by other process
+        #shutil.rmtree(path)
     else:
         print("The file does not exist at location: ", path)
+
+@app.route('/delete_databases/')
+def delete_databases():
+    path = ADATGYUJTES_CONFIG["COPIED_DATABASE_PATH"]
+    origin_path = ADATGYUJTES_CONFIG["DATABASE_PATH"]
+    directory = os.path.dirname(origin_path)
+    random_key_file_name = "random.json"
+    random_key_file_path = os.path.join(directory, random_key_file_name)
+    for item in [path, origin_path, random_key_file_path]:
+        try:
+            delete_file(item)
+        except Exception as e:
+            result = "Hiba a fájl törlése közben. \nA file: " + item + " \nA hiba: " + str(e)
+            print(result)
+            return result
     return redirect(url_for('thanks'), code=302)
 
 
