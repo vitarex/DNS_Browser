@@ -907,7 +907,7 @@ def initialize_app(url_prefix=None):
     print("OK2")
     try:
         # TODO REMOVE - it is only test purpose, configure will set this
-        CONFIG.set_database_path()
+        #CONFIG.set_database_path()
         print("PRIVADOME DB_PATH - : ", CONFIG.database_path)
         print("Copydb: ", CONFIG.copied_database_path)
         shutil.copy(CONFIG.database_path, CONFIG.copied_database_path)
