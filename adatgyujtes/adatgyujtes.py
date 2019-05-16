@@ -207,6 +207,7 @@ def faq():
     return render_template('faq.html')
 
 import nacl.pwhash
+import nacl.hash
 
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
@@ -351,6 +352,7 @@ import requests
 import queue
 import encryption
 import zipfile
+import random
 from event import QueueEvent
 
 progress_queue = queue.Queue()
@@ -450,7 +452,7 @@ def upload_task():
             # Create the blob
             blobService.create_blob_from_path(
                 container_name=credentials["containerName"],
-                blob_name=credentials["id"]+ "_" + str(datetime.datetime.utcnow().isoformat()) + ".zip",
+                blob_name=nacl.hash.sha256(nacl.utils.random(64)).decode()[:24],
                 file_path=CONFIG.zipped_db_name,
                 progress_callback=progress_callback,
                 timeout=200)
