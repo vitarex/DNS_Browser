@@ -694,7 +694,8 @@ def delete_databases():
     directory = os.path.dirname(origin_path)
     random_key_file_name = "random.json"
     random_key_file_path = os.path.join(directory, random_key_file_name)
-    for item in [path, origin_path, random_key_file_path]:
+    config = "config.ini"
+    for item in [path, origin_path, random_key_file_path, config]:
         try:
             delete_file(item)
         except Exception as e:
