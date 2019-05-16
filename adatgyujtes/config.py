@@ -31,6 +31,14 @@ class Config:
         config.set(self.configType.name, 'PASSWORD', newhash)
         config.write(open('config.ini', 'w'))
 
+    def set_database_path(self):
+        # Getting privadome.db location if it uses same interpreter as this script
+        python_dir_path = os.path.dirname(sys.executable)
+        db_path = os.path.join(python_dir_path, "Lib", "site-packages", "privadome", "database", "privadome.db")
+        self.database_path = db_path
+        config.set(self.configType.name, 'DATABASE_PATH', db_path)
+        config.write(open('config.ini', 'w'))
+
 def hashpw(pw):
     return nacl.pwhash.str(pw.encode()).decode()
 
@@ -59,7 +67,7 @@ def configure(credential = None):
                 DATABASE_PATH = os.path.join(PYTHON_DIR_PATH, "Lib", "site-packages", "privadome", "database", "privadome.db")
                 print("PRIVADOME DB_PATH - : ", DATABASE_PATH)
                 COPIED_DATABASE_PATH = "copy.db"
-                config.set('DEFAULT', 'DATABASE_PATH', DATABASE_PATH)
+                config.set('DEFAULT', 'DATABASE_PATH', DATABASE_PATH) #TODO config.set_database_path()
                 config.set('DEFAULT', 'COPIED_DATABASE_PATH', COPIED_DATABASE_PATH)
 
             except ImportError as e:

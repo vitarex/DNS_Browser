@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import datetime
-from dateutil import tz
 import json
 import math
 import operator
@@ -262,13 +261,15 @@ def stop_collecting():
 @app.route('/copy/')
 def create_copy_queries():
     global dataset
-    shutil.copy(DATABASE_PATH, CONFIG.copied_database_path)
+    global migrator
+    shutil.copy(CONFIG.database_path, CONFIG.copied_database_path)
     dataset = SqliteDataSet('sqlite:///{path}'.format(path=CONFIG.copied_database_path), bare_fields=True)
+    migrator = dataset._migrator
     return redirect(url_for('table_domains'), code=302)
 
 @app.route('/domains/')
 def table_domains():
-    table = "queries"
+    table = "BMEqueries"
 
     page_number = request.args.get('page') or ''
     page_number = int(page_number) if page_number.isdigit() else 1
@@ -546,7 +547,7 @@ def open_live_dataset_table(table):
 
 @app.route('/queries/')
 def table_queries():
-    table="queries"
+    table="BMEqueries"
 
     page_number = request.args.get('page') or ''
     page_number = int(page_number) if page_number.isdigit() else 1
@@ -613,7 +614,7 @@ def table_queries():
 def table_full():
     live_dataset.connect()
     dataset = live_dataset # Doesnt override global instance, variable is local.
-    table = "queries"
+    table = "BMEqueries"
 
     page_number = request.args.get('page') or ''
     page_number = int(page_number) if page_number.isdigit() else 1
@@ -673,16 +674,33 @@ def table_full():
         search=search,
         true_content=True)
 
-@app.route('/delete_databases/')
-def delete_databases():
-    path =  CONFIG.copied_database_path
-    origin_path = path =  CONFIG.database_path
+def delete_file(path):
     if os.path.exists(path):
         if not dataset._database.is_closed():
             dataset.close()
-        os.remove(path) #TODO
+        if not live_dataset._database.is_closed():
+            live_dataset.close()
+        os.unlink(path)
+        # TODO remove empty file too?
+        # TODO test on linux, cause win cannot delete file, that is used by other process
+        #shutil.rmtree(path)
     else:
         print("The file does not exist at location: ", path)
+
+@app.route('/delete_databases/')
+def delete_databases():
+    path =  CONFIG.copied_database_path
+    origin_path = CONFIG.database_path
+    directory = os.path.dirname(origin_path)
+    random_key_file_name = "random.json"
+    random_key_file_path = os.path.join(directory, random_key_file_name)
+    for item in [path, origin_path, random_key_file_path]:
+        try:
+            delete_file(item)
+        except Exception as e:
+            result = "Hiba a fájl törlése közben. \nA file: " + item + " \nA hiba: " + str(e)
+            print(result)
+            return result
     return redirect(url_for('thanks'), code=302)
 
 
@@ -880,16 +898,6 @@ def check_password():
         session['next_url'] = request.base_url
         return redirect(url_for('login'))
 
-# Getting privadome.db location if it uses same interpreter as this script
-PYTHON_DIR_PATH = os.path.dirname(sys.executable)
-#DATABASE_PATH = os.path.join(PYTHON_DIR_PATH, "Lib", "site-packages", "privadome", "database", "privadome.db")
-DATABASE_PATH = config.config["TEST"]["DATABASE_PATH"]
-print("PRIVADOME DB_PATH - : ", DATABASE_PATH)
-#app.config["DATABASE_PATH"] = DATABASE_PATH # TODO merge 2 rows
-COPIED_DATABASE_PATH = "copy.db"
-#config.set('TEST', 'DATABASE_PATH', DATABASE_PATH)
-#config.set('TEST', 'COPIED_DATABASE_PATH', COPIED_DATABASE_PATH)
-
 def initialize_app(url_prefix=None):
     global dataset
     global live_dataset
@@ -897,19 +905,21 @@ def initialize_app(url_prefix=None):
 
     print("OK2")
     try:
+        # TODO REMOVE - it is only test purpose, configure will set this
+        CONFIG.set_database_path()
+        print("PRIVADOME DB_PATH - : ", CONFIG.database_path)
         print("Copydb: ", CONFIG.copied_database_path)
-        shutil.copy(DATABASE_PATH, CONFIG.copied_database_path)
+        shutil.copy(CONFIG.database_path, CONFIG.copied_database_path)
         dataset = SqliteDataSet('sqlite:///{path}'.format(path=CONFIG.copied_database_path), bare_fields=True)
         live_dataset = SqliteDataSet('sqlite:///{path}'.format(path=CONFIG.database_path), bare_fields=True)
     except Exception as e:
+        print("Hiba történt a fájl megnyitása közben. Ellenőrizze, hogy a privadome core alkalmazás feltelepült és működik az adatmentés.")
         print(e)
-        pass
+        raise
     
-
     if url_prefix:
         app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=url_prefix)
-
-    migrator = dataset._migrator
+    #migrator = dataset._migrator
     dataset.close()
     live_dataset.close()
 
