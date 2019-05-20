@@ -903,6 +903,8 @@ def main():
     parser = get_option_parser()
     options, args = parser.parse_args()
 
+    if not os.path.exists('config.ini'):
+        config.init_device()
 
     if options.debug:
         CONFIG = config.Config(config.ConfigTypes.TEST)

@@ -5,13 +5,13 @@ import string
 import requests
 import pdb
 import sys
+import shutil
 import nacl.pwhash
 from enum import Enum
 
-COPIED_DB_PATH = 'privadome_copy.db'
-
 config = configparser.ConfigParser()
-config.read('config.ini')
+if os.path.exists('config.ini'):
+    config.read('config.ini')
 
 class ConfigTypes(Enum):
     DEFAULT = 1
@@ -38,9 +38,19 @@ def hashpw(pw):
     return nacl.pwhash.str(pw.encode()).decode()
 
 def init_device():
-    print('Credential: ')
-    credential = input()
-    configure_default(credential)
+    if not os.path.exists('config.ini'):
+        shutil.copy('config_default.ini', 'config.ini')
+        config.read('config.ini')
+    print('Select config type: T (Test), D (Default)')
+    ctype = input()
+    while not (ctype is 'D' or ctype is 'T'):
+        ctype = input()
+    if ctype is 'D':
+        print('Credential: ')
+        credential = input()
+        configure_default(credential)
+    else:
+        configure_test()
 
 def configure_test():
     config.set('TEST', 'ADATGYUJTES_ID', 'tesztID')
