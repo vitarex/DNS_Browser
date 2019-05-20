@@ -76,7 +76,7 @@
         <tr>
           <td>
             {% set value=row["domain"] %}
-            <a href="{{ url_for('table_domains', search=value) }}">{{ value|value_filter|safe }}</a>
+            <a href="{{ url_for('table_queries', search=value) }}">{{ value|value_filter|safe }}</a>
           </td>
           <td>
             {% set count=row.ct %}

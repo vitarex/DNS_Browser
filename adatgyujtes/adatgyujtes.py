@@ -74,14 +74,14 @@ from playhouse.migrate import migrate
 
 
 CUR_DIR = os.path.realpath(os.path.dirname(__file__))
-DEBUG = True
+DEBUG = False
 MAX_RESULT_SIZE = 1000
 ROWS_PER_PAGE = 50
 SECRET_KEY = 'sqlite-database-browser-0.1.0'
 
 import config
 
-CONFIG = config.Config(config.ConfigTypes.TEST)
+CONFIG = None
 
 app = Flask(
     __name__,
@@ -882,8 +882,6 @@ def initialize_app():
 
     print("OK2")
     try:
-        # TODO REMOVE - it is only test purpose, configure will set this
-        #CONFIG.set_database_path()
         print("PRIVADOME DB_PATH - : ", CONFIG.database_path)
         print("Copydb: ", CONFIG.copied_database_path)
         shutil.copy(CONFIG.database_path, CONFIG.copied_database_path)
@@ -899,9 +897,18 @@ def initialize_app():
     live_dataset.close()
 
 def main():
+    global CONFIG
+    
     # This function exists to act as a console script entry-point.
     parser = get_option_parser()
     options, args = parser.parse_args()
+
+
+    if options.debug:
+        CONFIG = config.Config(config.ConfigTypes.TEST)
+    else:
+        CONFIG = config.Config(config.ConfigTypes.DEFAULT)
+
     initialize_app()
 
     app.run(host=options.host, port=options.port, debug=options.debug)

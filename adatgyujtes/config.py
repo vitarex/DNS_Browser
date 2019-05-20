@@ -8,6 +8,8 @@ import sys
 import nacl.pwhash
 from enum import Enum
 
+COPIED_DB_PATH = 'privadome_copy.db'
+
 config = configparser.ConfigParser()
 config.read('config.ini')
 
@@ -30,29 +32,32 @@ class Config:
         self.password = newhash.encode()
         config.set(self.configType.name, 'PASSWORD', newhash)
         config.write(open('config.ini', 'w'))
-
-    def set_database_path(self):
-        # Getting privadome.db location if it uses same interpreter as this script
-        try:
-            import privadome
-            self.database_path = os.path.join(privadome.__path__[0], "database", "privadome.db")
-            if not os.path.exists(self.database_path):
-                raise AssertionError
-        except Exception as e:
-            print(e)
-            raise e
+        
 
 def hashpw(pw):
     return nacl.pwhash.str(pw.encode()).decode()
 
 def init_device():
-    print("Credential: ")
+    print('Credential: ')
     credential = input()
-    configure(credential)
+    configure_default(credential)
 
-def configure(credential = None):
+def configure_test():
+    config.set('TEST', 'ADATGYUJTES_ID', 'tesztID')
+
+    password = 'admin'
+    config.set('TEST', 'PASSWORD', hashpw(password))
+
+    print('Teszt DB path:')
+    config.set('TEST', 'DATABASE_PATH', input())
+
+    config.write(open('config.ini', 'w'))
+    
+    print('Teszt környezet sikeresen felállítva.')
+
+def configure_default(credential: str = None):
     gen_id = random_string()
-    result = requests.post(url=config['REGISTER']['REGISTER_URL'], json={"generationCredential": credential, "id": gen_id})
+    result = requests.post(url=config['REGISTER']['REGISTER_URL'], json={'generationCredential': credential, 'id': gen_id})
     if result.ok:
         if result.json()['id'] == gen_id:
             config.set('DEFAULT', 'ADATGYUJTES_ID', gen_id)
@@ -62,19 +67,14 @@ def configure(credential = None):
 
             try:
                 import privadome
-                # TODO
-                config.set('DEFAULT', 'DATABASE_PATH', privadome.__file__)
-
-                # Getting privadome.db location if it uses same interpreter as this script
-                PYTHON_DIR_PATH = os.path.dirname(sys.executable)
-                DATABASE_PATH = os.path.join(PYTHON_DIR_PATH, "Lib", "site-packages", "privadome", "database", "privadome.db")
-                print("PRIVADOME DB_PATH - : ", DATABASE_PATH)
-                COPIED_DATABASE_PATH = "copy.db"
-                config.set('DEFAULT', 'DATABASE_PATH', DATABASE_PATH) #TODO config.set_database_path()
-                config.set('DEFAULT', 'COPIED_DATABASE_PATH', COPIED_DATABASE_PATH)
-
-            except ImportError as e:
-                print("Configure hiba. ", e)
+                print(privadome.__path__)
+                db_path = os.path.join(privadome.__path__[0], 'database', 'privadome.db')
+                if not os.path.exists(db_path):
+                    raise AssertionError
+                config.set('DEFAULT', 'DATABASE_PATH', db_path)
+            except Exception as e:
+                print(e)
+                raise e
 
             config.write(open('config.ini', 'w'))
             print('Eszköz sikeresen regisztrálva.')
