@@ -841,37 +841,13 @@ def get_option_parser():
     parser.add_option(
         '-H',
         '--host',
-        default='127.0.0.1',
+        default='0.0.0.0',
         help='Host for web interface, default=127.0.0.1')
     parser.add_option(
         '-d',
         '--debug',
         action='store_true',
         help='Run server in debug mode')
-    parser.add_option(
-        '-x',
-        '--no-browser',
-        action='store_false',
-        default=True,
-        dest='browser',
-        help='Do not automatically open browser page.')
-    parser.add_option(
-        '-P',
-        '--password',
-        action='store_true',
-        dest='prompt_password',
-        help='Prompt for password to access database browser.')
-    parser.add_option(
-        '-r',
-        '--read-only',
-        action='store_true',
-        dest='read_only',
-        help='Open database in read-only mode.')
-    parser.add_option(
-        '-u',
-        '--url-prefix',
-        dest='url_prefix',
-        help='URL prefix for application.')
     return parser
 
 def die(msg, exit_code=1):
@@ -934,8 +910,8 @@ def main():
     # Initialize the dataset instance .
     initialize_app(options.url_prefix)
 
-    if options.browser:
-        open_browser_tab(options.host, options.port)
+    #if options.browser:
+    #    open_browser_tab(options.host, options.port)
     app.run(host=options.host, port=options.port, debug=options.debug)
 
 
