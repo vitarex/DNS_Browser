@@ -269,7 +269,7 @@ def create_copy_queries():
 
 @app.route('/domains/')
 def table_domains():
-    table = "BMEqueries"
+    table = "queries"
 
     page_number = request.args.get('page') or ''
     page_number = int(page_number) if page_number.isdigit() else 1
@@ -547,7 +547,7 @@ def open_live_dataset_table(table):
 
 @app.route('/queries/')
 def table_queries():
-    table="BMEqueries"
+    table="queries"
 
     page_number = request.args.get('page') or ''
     page_number = int(page_number) if page_number.isdigit() else 1
@@ -614,7 +614,7 @@ def table_queries():
 def table_full():
     live_dataset.connect()
     dataset = live_dataset # Doesnt override global instance, variable is local.
-    table = "BMEqueries"
+    table = "queries"
 
     page_number = request.args.get('page') or ''
     page_number = int(page_number) if page_number.isdigit() else 1
