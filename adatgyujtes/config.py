@@ -35,8 +35,10 @@ class Config:
         # Getting privadome.db location if it uses same interpreter as this script
         try:
             import privadome
-            self.database_path = os.path.join(privadome.__path__, "database", "privadome.db")
-        except ImportError as e:
+            self.database_path = os.path.join(privadome.__path__[0], "database", "privadome.db")
+            if not os.path.exists(self.database_path):
+                raise AssertionError
+        except Exception as e:
             print(e)
             raise e
 

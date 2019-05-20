@@ -875,7 +875,7 @@ def check_password():
         session['next_url'] = request.base_url
         return redirect(url_for('login'))
 
-def initialize_app(url_prefix=None):
+def initialize_app():
     global dataset
     global live_dataset
     global migrator
@@ -894,8 +894,6 @@ def initialize_app(url_prefix=None):
         print(e)
         raise
     
-    if url_prefix:
-        app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=url_prefix)
     #migrator = dataset._migrator
     dataset.close()
     live_dataset.close()
@@ -904,11 +902,7 @@ def main():
     # This function exists to act as a console script entry-point.
     parser = get_option_parser()
     options, args = parser.parse_args()
-    #if not args:
-    #    die('Error: missing required path to database file.')
-
-    # Initialize the dataset instance .
-    initialize_app(options.url_prefix)
+    initialize_app()
 
     app.run(host=options.host, port=options.port, debug=options.debug)
 
