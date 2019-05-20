@@ -3,5 +3,4 @@ adatgyujtes/*.7z
 .vscode/settings.json
 *.pyc
 config.ini
-copy.db
 *.db
