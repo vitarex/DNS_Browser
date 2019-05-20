@@ -910,8 +910,6 @@ def main():
     # Initialize the dataset instance .
     initialize_app(options.url_prefix)
 
-    #if options.browser:
-    #    open_browser_tab(options.host, options.port)
     app.run(host=options.host, port=options.port, debug=options.debug)
 
 

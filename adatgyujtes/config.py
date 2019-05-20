@@ -33,11 +33,12 @@ class Config:
 
     def set_database_path(self):
         # Getting privadome.db location if it uses same interpreter as this script
-        python_dir_path = os.path.dirname(sys.executable)
-        db_path = os.path.join(python_dir_path, "Lib", "site-packages", "privadome", "database", "privadome.db")
-        self.database_path = db_path
-        config.set(self.configType.name, 'DATABASE_PATH', db_path)
-        config.write(open('config.ini', 'w'))
+        try:
+            import privadome
+            self.database_path = os.path.join(privadome.__path__, "database", "privadome.db")
+        except ImportError as e:
+            print(e)
+            raise e
 
 def hashpw(pw):
     return nacl.pwhash.str(pw.encode()).decode()
