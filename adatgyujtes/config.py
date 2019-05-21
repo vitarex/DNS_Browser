@@ -26,13 +26,13 @@ class Config:
         self.sas_url = config[configType.name]['SAS_URL']
         self.adatgyujtes_id = config[configType.name]['ADATGYUJTES_ID']
         self.password = config[configType.name]['PASSWORD'].encode()
+        self.completed = config.getboolean(configType.name, 'STOPPED_COLLECTING')
 
     def change_password(self, newpw):
         newhash = hashpw(newpw)
         self.password = newhash.encode()
         config.set(self.configType.name, 'PASSWORD', newhash)
         config.write(open('config.ini', 'w'))
-        
 
 def hashpw(pw):
     return nacl.pwhash.str(pw.encode()).decode()
@@ -89,7 +89,6 @@ def configure_default(credential: str = None):
             print('Nem sikerült regisztrálni az eszközt.', result.content)
     else:
         print('Nem sikerült regisztrálni az eszközt.', result.content)
-        pdb.set_trace()
             
 
 def random_string(length = 16):

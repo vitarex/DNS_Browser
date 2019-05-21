@@ -207,6 +207,7 @@ def faq():
 
 import nacl.pwhash
 import nacl.hash
+import nacl.utils
 
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
@@ -461,6 +462,7 @@ def upload_task():
                 "type": "completed",
                 "subject": "upload"
             })
+            delete_file(CONFIG.zipped_db_name)
         else:
             raise AssertionError("Incorrect Azure credentials received.")
         # Release global lock
@@ -676,6 +678,7 @@ def table_full():
 
 def delete_file(path):
     if os.path.exists(path):
+        print('Deleting {}...'.format(path))
         if not dataset._database.is_closed():
             dataset.close()
         if not live_dataset._database.is_closed():
@@ -695,7 +698,8 @@ def delete_databases():
     random_key_file_name = "random.json"
     random_key_file_path = os.path.join(directory, random_key_file_name)
     config = "config.ini"
-    for item in [path, origin_path, random_key_file_path, config]:
+    CONFIG.completed = True
+    for item in [config, path, origin_path, random_key_file_path]:
         try:
             delete_file(item)
         except Exception as e:
@@ -798,6 +802,11 @@ def _general():
 @app.context_processor
 def _now():
     return {'now': datetime.datetime.now()}
+
+@app.before_request
+def check_completed():
+    if CONFIG.completed and not '/thanks/' in request.path:
+        return redirect(url_for('thanks'))
 
 @app.before_request
 def _connect_db():
@@ -905,11 +914,18 @@ def main():
 
     if not os.path.exists('config.ini'):
         config.init_device(options.debug)
-
     if options.debug:
-        CONFIG = config.Config(config.ConfigTypes.TEST)
+        try:
+            CONFIG = config.Config(config.ConfigTypes.TEST)
+        except KeyError:
+            config.init_device(options.debug)
+            CONFIG = config.Config(config.ConfigTypes.TEST)
     else:
-        CONFIG = config.Config(config.ConfigTypes.DEFAULT)
+        try:
+            CONFIG = config.Config(config.ConfigTypes.DEFAULT)
+        except KeyError:
+            config.init_device(options.debug)
+            CONFIG = config.Config(config.ConfigTypes.DEFAULT)
 
     initialize_app()
 
