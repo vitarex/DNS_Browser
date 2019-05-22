@@ -268,6 +268,8 @@ def create_copy_queries():
     migrator = dataset._migrator
     return redirect(url_for('table_domains'), code=302)
 
+import procbridge
+
 @app.route('/domains/')
 def table_domains():
     table = "queries"
@@ -287,7 +289,12 @@ def table_domains():
     delete_domain = request.args.get('delete')
     if delete_domain:
         ds_table.delete(domain=delete_domain)
-        open_live_dataset_table(table).delete(domain=delete_domain)
+        #open_live_dataset_table(table).delete(domain=delete_domain)
+        client = procbridge.Client('127.0.0.1', CONFIG.proc_port)
+        response = client.request('delete_domain', {'domain': delete_domain})
+        if response is not 'OK':
+            flash('Nem sikerült végrehajtani a törlés utasítást. Kérjük próbálja meg újra!')
+
 
     search = request.args.get('search')
     if search:
@@ -562,7 +569,11 @@ def table_queries():
     delete_index = request.args.get('delete')
     if delete_index:
         ds_table.delete(id=delete_index)
-        open_live_dataset_table(table).delete(id=delete_index)
+        #open_live_dataset_table(table).delete(id=delete_index)
+        client = procbridge.Client('127.0.0.1', CONFIG.proc_port)
+        response = client.request('delete_index', {'id': delete_index})
+        if response is not 'OK':
+            flash('Nem sikerült végrehajtani a törlés utasítást. Kérjük próbálja meg újra!')
 
     search = request.args.get('search')
     if search:
@@ -643,7 +654,11 @@ def table_full():
 
     delete_index = request.args.get('delete')
     if delete_index:
-        ds_table.delete(id=delete_index)
+        #ds_table.delete(id=delete_index)
+        client = procbridge.Client('127.0.0.1', CONFIG.proc_port)
+        response = client.request('delete_id', {'id': delete_index})
+        if response is not 'OK':
+            flash('Nem sikerült végrehajtani a törlés utasítást. Kérjük próbálja meg újra!')
 
     query = query.paginate(page_number, rows_per_page)
 

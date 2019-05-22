@@ -27,6 +27,7 @@ class Config:
         self.adatgyujtes_id = config[configType.name]['ADATGYUJTES_ID']
         self.password = config[configType.name]['PASSWORD'].encode()
         self.completed = config.getboolean(configType.name, 'STOPPED_COLLECTING')
+        self.proc_port = config[configType.name]['PROC_PORT']
 
     def change_password(self, newpw):
         newhash = hashpw(newpw)
