@@ -293,7 +293,7 @@ def table_domains():
         client = procbridge.Client('127.0.0.1', CONFIG.proc_port)
         response = client.request('delete_domain', {'domain': delete_domain})
         if response is not 'OK':
-            flash('Nem sikerült végrehajtani a törlés utasítást. Kérjük próbálja meg újra!')
+            flash('Nem sikerült végrehajtani a törlés utasítást. Kérjük próbálja meg újra!', 'danger')
 
 
     search = request.args.get('search')
@@ -573,7 +573,7 @@ def table_queries():
         client = procbridge.Client('127.0.0.1', CONFIG.proc_port)
         response = client.request('delete_index', {'id': delete_index})
         if response is not 'OK':
-            flash('Nem sikerült végrehajtani a törlés utasítást. Kérjük próbálja meg újra!')
+            flash('Nem sikerült végrehajtani a törlés utasítást. Kérjük próbálja meg újra!', 'danger')
 
     search = request.args.get('search')
     if search:
@@ -658,7 +658,7 @@ def table_full():
         client = procbridge.Client('127.0.0.1', CONFIG.proc_port)
         response = client.request('delete_id', {'id': delete_index})
         if response is not 'OK':
-            flash('Nem sikerült végrehajtani a törlés utasítást. Kérjük próbálja meg újra!')
+            flash('Nem sikerült végrehajtani a törlés utasítást. Kérjük próbálja meg újra!', 'danger')
 
     query = query.paginate(page_number, rows_per_page)
 
@@ -819,11 +819,6 @@ def _now():
     return {'now': datetime.datetime.now()}
 
 @app.before_request
-def check_completed():
-    if CONFIG.completed and not '/thanks/' in request.path:
-        return redirect(url_for('thanks'))
-
-@app.before_request
 def _connect_db():
     dataset.connect()
 
@@ -898,11 +893,16 @@ def check_password():
         flash('Az adatbázis csak bejelentkezés után tekinthető meg.', 'danger')
         session['next_url'] = request.base_url
         return redirect(url_for('login'))
+    else:
+        if CONFIG.completed and not '/thanks/' in request.path:
+            return redirect(url_for('thanks'))
 
 def initialize_app():
     global dataset
     global live_dataset
     global migrator
+
+    
 
     print("OK2")
     try:
