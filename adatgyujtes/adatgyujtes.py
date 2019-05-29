@@ -904,8 +904,6 @@ def initialize_app():
     global live_dataset
     global migrator
 
-    
-
     print("OK2")
     try:
         print("PRIVADOME DB_PATH - : ", CONFIG.database_path)
