@@ -43,28 +43,35 @@
         <button class="btn btn-primary btn-sm" type="submit" >Keresés</button>
       </form>
     </div>
-    <div class="col-4 my-auto">
+    <div class="col-1 text-center">
+      {% if raw_data %}
+      <a href="./?raw_data=False" class="btn btn-primary btn-sm">Nyers</a>
+      {% else %}
+      <a href="./?raw_data=True" class="btn btn-outline-primary btn-sm">Nyers</a>
+      {% endif %}
+    </div>
+    <div class="col-3 my-auto">
       <nav class="my-auto">
         <ul class="pagination my-auto">
           <li class="{% if not previous_page %}disabled {% endif %}page-item">
-            <a class="page-link" href="{{ url_for('table_full', page=1, ordering=ordering, search=search) }}">&laquo;</a>
+            <a class="page-link" href="{{ url_for('table_full', page=1, ordering=ordering, search=search, raw_data=raw_data) }}">&laquo;</a>
           </li>
           <li class="{% if not previous_page %}disabled {% endif %}page-item">
-            <a class="page-link" href="{{ url_for('table_full', page=previous_page, ordering=ordering, search=search) }}">&lsaquo;</a>
+            <a class="page-link" href="{{ url_for('table_full', page=previous_page, ordering=ordering, search=search, raw_data=raw_data) }}">&lsaquo;</a>
           </li>
           <li class="page-item disabled">
             <span class="page-link">Oldal {{ page }} / {{ total_pages }}</span>
           </li>
           <li class="{% if not next_page %}disabled {% endif %}page-item">
-            <a class="page-link" href="{{ url_for('table_full', page=next_page, ordering=ordering, search=search) }}">&rsaquo;</a>
+            <a class="page-link" href="{{ url_for('table_full', page=next_page, ordering=ordering, search=search, raw_data=raw_data) }}">&rsaquo;</a>
           </li>
           <li class="{% if not next_page %}disabled {% endif %}page-item">
-            <a class="page-link" href="{{ url_for('table_full', page=total_pages, ordering=ordering, search=search) }}">&raquo;</a>
+            <a class="page-link" href="{{ url_for('table_full', page=total_pages, ordering=ordering, search=search, raw_data=raw_data) }}">&raquo;</a>
           </li>
         </ul>
       </nav>
     </div>
-    <div class="col-3 text-center my-auto float-right">
+    <div class="col-2 text-center my-auto float-right">
       <h4 class="my-auto">{{ total_rows }} sor, {{ page }}. oldal</h4>
     </div>
   </div>
@@ -88,13 +95,13 @@
               {% if value is none %}
                 NULL
               {% else %}
-                {{ value|value_filter(field=field)|safe }}
+                {{ value|value_filter(field=None if raw_data else field)|safe }}
               {% endif %}
             </td>
           {% endfor %}
           {% set delete_id = row["id"] %}
           <td>
-            <a href="{{ url_for('table_full', page=page, ordering=ordering, delete=delete_id) }}">Törlés</a>
+            <a href="{{ url_for('table_full', page=page, ordering=ordering, delete=delete_id, raw_data=raw_data) }}">Törlés</a>
           </td>
         </tr>
       {% endfor %}
@@ -103,19 +110,19 @@
   <nav>
     <ul class="pagination">
       <li class="{% if not previous_page %}disabled {% endif %}page-item">
-        <a class="page-link" href="{{ url_for('table_full', page=1, ordering=ordering, search=search) }}">&laquo;</a>
+        <a class="page-link" href="{{ url_for('table_full', page=1, ordering=ordering, search=search, raw_data=raw_data) }}">&laquo;</a>
       </li>
       <li class="{% if not previous_page %}disabled {% endif %}page-item">
-        <a class="page-link" href="{{ url_for('table_full', page=previous_page, ordering=ordering, search=search) }}">&lsaquo;</a>
+        <a class="page-link" href="{{ url_for('table_full', page=previous_page, ordering=ordering, search=search, raw_data=raw_data) }}">&lsaquo;</a>
       </li>
       <li class="page-item disabled">
         <span class="page-link">Oldal {{ page }} / {{ total_pages }}</span>
       </li>
       <li class="{% if not next_page %}disabled {% endif %}page-item">
-        <a class="page-link" href="{{ url_for('table_full', page=next_page, ordering=ordering, search=search) }}">&rsaquo;</a>
+        <a class="page-link" href="{{ url_for('table_full', page=next_page, ordering=ordering, search=search, raw_data=raw_data) }}">&rsaquo;</a>
       </li>
       <li class="{% if not next_page %}disabled {% endif %}page-item">
-        <a class="page-link" href="{{ url_for('table_full', page=total_pages, ordering=ordering, search=search) }}">&raquo;</a>
+        <a class="page-link" href="{{ url_for('table_full', page=total_pages, ordering=ordering, search=search, raw_data=raw_data) }}">&raquo;</a>
       </li>
     </ul>
   </nav>

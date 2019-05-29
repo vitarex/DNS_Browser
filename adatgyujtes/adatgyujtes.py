@@ -635,6 +635,8 @@ def table_full():
     dataset.update_cache(table)
     ds_table = dataset[table]
 
+    raw_data = request.args.get('raw_data') == "True"
+
     rows_per_page = app.config['ROWS_PER_PAGE']
 
     search = request.args.get('search')
@@ -689,7 +691,8 @@ def table_full():
         total_pages=total_pages,
         total_rows=total_rows,
         search=search,
-        true_content=True)
+        true_content=True,
+        raw_data=raw_data)
 
 def delete_file(path):
     if os.path.exists(path):
