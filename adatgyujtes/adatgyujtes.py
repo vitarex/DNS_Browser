@@ -292,7 +292,7 @@ def table_domains():
         #open_live_dataset_table(table).delete(domain=delete_domain)
         client = procbridge.Client('127.0.0.1', CONFIG.proc_port)
         response = client.request('delete_domain', {'domain': delete_domain})
-        if response is not 'OK':
+        if response != 'OK':
             flash('Nem sikerült végrehajtani a törlés utasítást. Kérjük próbálja meg újra!')
 
 
@@ -571,8 +571,8 @@ def table_queries():
         ds_table.delete(id=delete_index)
         #open_live_dataset_table(table).delete(id=delete_index)
         client = procbridge.Client('127.0.0.1', CONFIG.proc_port)
-        response = client.request('delete_index', {'id': delete_index})
-        if response is not 'OK':
+        response = client.request('delete_id', {'id': int(delete_index)})
+        if response != 'OK':
             flash('Nem sikerült végrehajtani a törlés utasítást. Kérjük próbálja meg újra!')
 
     search = request.args.get('search')
@@ -656,9 +656,9 @@ def table_full():
     if delete_index:
         #ds_table.delete(id=delete_index)
         client = procbridge.Client('127.0.0.1', CONFIG.proc_port)
-        response = client.request('delete_id', {'id': delete_index})
-        if response is not 'OK':
-            flash('Nem sikerült végrehajtani a törlés utasítást. Kérjük próbálja meg újra!')
+        response = client.request('delete_id', {'id': int(delete_index)})
+        if response != 'OK':
+            flash('Nem sikerült végrehajtani a törlés utasítást. Kérjük próbálja meg újra! \nA hiba: ' + str(response))
 
     query = query.paginate(page_number, rows_per_page)
 
@@ -707,14 +707,15 @@ def delete_file(path):
 
 @app.route('/delete_databases/')
 def delete_databases():
-    path =  CONFIG.copied_database_path
-    origin_path = CONFIG.database_path
-    directory = os.path.dirname(origin_path)
+    client = procbridge.Client('127.0.0.1', CONFIG.proc_port)
+    response = client.request('db_shutdown', {'id': '1234'})
+    print("RESPONSE IS: ", response)
+    directory = os.path.dirname(CONFIG.database_path)
     random_key_file_name = "random.json"
     random_key_file_path = os.path.join(directory, random_key_file_name)
     config = "config.ini"
     CONFIG.completed = True
-    for item in [config, path, origin_path, random_key_file_path]:
+    for item in [config, CONFIG.copied_database_path, random_key_file_path]:
         try:
             delete_file(item)
         except Exception as e:
