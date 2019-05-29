@@ -88,7 +88,7 @@
               {% if value is none %}
                 NULL
               {% else %}
-                {{ value|value_filter|safe }}
+                {{ value|value_filter(field=field)|safe }}
               {% endif %}
             </td>
           {% endfor %}

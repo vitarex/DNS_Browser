@@ -820,11 +820,6 @@ def _now():
     return {'now': datetime.datetime.now()}
 
 @app.before_request
-def check_completed():
-    if CONFIG.completed and not '/thanks/' in request.path:
-        return redirect(url_for('thanks'))
-
-@app.before_request
 def _connect_db():
     dataset.connect()
 
@@ -894,11 +889,16 @@ def open_browser_tab(host, port):
 
 @app.before_request
 def check_password():
+    session.permanent = True
+    app.permanent_session_lifetime = datetime.timedelta(minutes=5)
     if not session.get('authorized') and request.path != '/login/' and \
         not request.path.startswith(('/static/', '/favicon')):
         flash('Az adatbázis csak bejelentkezés után tekinthető meg.', 'danger')
         session['next_url'] = request.base_url
         return redirect(url_for('login'))
+    else:
+        if CONFIG.completed and not '/thanks/' in request.path:
+            return redirect(url_for('thanks'))
 
 def initialize_app():
     global dataset
