@@ -91,7 +91,7 @@ app.config.from_object(__name__)
 dataset = None
 live_dataset = None
 migrator = None
-timezone_offset = 0
+offset = 0
 #
 # Database metadata objects.
 #
@@ -858,7 +858,7 @@ def get_option_parser():
     parser.add_option(
         '-p',
         '--port',
-        default=8080,
+        default=80,
         help='Port for web interface, default=8080',
         type='int')
     parser.add_option(
